@@ -2,13 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Vanshavali Heritage Tree</title>
-
-  <!-- Mobile App Meta Tags for iOS & Android -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#0f172a" />
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -46,84 +41,19 @@
       box-shadow: 0 0 25px rgba(245, 158, 11, 0.45), 0 10px 25px -5px rgba(15, 23, 42, 0.25) !important;
     }
 
-    /* Safe Area Spacing for Mobile Devices */
-    .safe-top { padding-top: max(0.6rem, env(safe-area-inset-top)); }
-    .safe-bottom { padding-bottom: max(0.6rem, env(safe-area-inset-bottom)); }
-
     /* Print styles */
     @media print {
       body * { visibility: hidden; }
       #printableArea, #printableArea * { visibility: visible; }
       #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
-      header, .floating-ui, #canvasContainer, #spotlightBanner, #mobileBottomNav, #authGatewayScreen { display: none !important; }
+      header, .floating-ui, #canvasContainer, #spotlightBanner { display: none !important; }
     }
   </style>
 </head>
 <body class="h-screen w-screen flex flex-col overflow-hidden bg-slate-900 text-slate-800 font-sans antialiased">
 
-  <!-- ========================================================================= -->
-  <!-- 1. FIRST SCREEN GATEWAY: MANDATORY SIGN IN & FAMILY MEMBER VERIFICATION   -->
-  <!-- ========================================================================= -->
-  <div id="authGatewayScreen" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-      <!-- Header Banner -->
-      <div class="px-6 py-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white text-center relative">
-        <div class="h-14 w-14 rounded-2xl bg-indigo-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/40 mb-3">
-          🌿
-        </div>
-        <h1 class="text-xl font-black tracking-tight">Vanshavali Heritage Tree</h1>
-        <p class="text-xs text-slate-300 mt-1">Verified Family Lineage & Heritage Archive</p>
-        <span class="inline-block mt-3 px-3 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-[10px] font-bold">
-          🔒 Private Family Access
-        </span>
-      </div>
-
-      <!-- Verification Form -->
-      <div class="p-6 space-y-4 text-xs">
-        <p class="text-slate-600 text-center leading-relaxed text-[11px]">
-          To protect our family records from outside manipulation, only verified members whose names exist in this tree may sign in.
-        </p>
-
-        <div>
-          <label class="block font-bold text-slate-800 mb-1">Your Full Name (As written in Tree) <span class="text-red-500">*</span></label>
-          <input type="text" id="gateFullName" placeholder="e.g. Ramesh Chandra Patel"
-            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-800 mb-1">Email ID <span class="text-red-500">*</span></label>
-          <input type="email" id="gateEmail" placeholder="e.g. yourname@domain.com"
-            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-800 mb-1">Secure Password / PIN <span class="text-red-500">*</span></label>
-          <input type="password" id="gatePin" placeholder="Enter secure PIN"
-            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="pt-2 flex flex-col gap-2.5">
-          <!-- Sign in if in tree -->
-          <button type="button" onclick="verifyAndSignIn()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
-            <span>🔐</span> <span>Sign In to My Tree (Family Member)</span>
-          </button>
-
-          <!-- Join with new family -->
-          <button type="button" onclick="registerNewFamilyTree()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border border-slate-300 transition text-[11px]">
-            🌱 Start / Create New Separate Family Tree
-          </button>
-        </div>
-
-        <p class="text-[10px] text-slate-400 text-center pt-1">
-          * If you are an invited relative, enter your name as registered by your family member.
-        </p>
-      </div>
-    </div>
-  </div>
-
   <!-- Top Header Navigation -->
-  <header class="bg-slate-900 text-white border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shadow-lg z-30 flex-wrap gap-2 safe-top">
+  <header class="bg-slate-900 text-white border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shadow-lg z-30 flex-wrap gap-2">
     <!-- Brand & Status -->
     <div class="flex items-center space-x-3">
       <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-500/30">
@@ -157,18 +87,21 @@
       <span class="absolute right-2.5 top-1.5 text-xs text-slate-400">🔍</span>
     </div>
 
-    <!-- Action Toolbar (Desktop View) -->
-    <div class="hidden sm:flex items-center space-x-2">
+    <!-- Action Toolbar -->
+    <div class="flex items-center space-x-2">
+      <!-- Auto Align -->
       <button onclick="autoArrangeTree()" title="Auto-align generations"
         class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1 shadow-sm">
-        <span>⚡</span> <span>Align</span>
+        <span>⚡</span> <span class="hidden sm:inline">Align</span>
       </button>
 
+      <!-- Share Link -->
       <button onclick="shareTreeLink()" title="Share Link with family"
         class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1 shadow-sm shadow-emerald-900/30">
-        <span>🔗</span> <span>Share</span>
+        <span>🔗</span> <span class="hidden sm:inline">Share</span>
       </button>
 
+      <!-- Export Menu -->
       <div class="relative">
         <button onclick="toggleExportMenu()"
           class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1">
@@ -182,11 +115,13 @@
         </div>
       </div>
 
-      <button onclick="handleSignOut()"
+      <!-- User Account Button -->
+      <button id="authBtn" onclick="openAuthModal()"
         class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1">
-        <span>👤</span> <span id="authBtnLabel">Sign Out</span>
+        <span>👤</span> <span id="authBtnLabel">Sign In</span>
       </button>
 
+      <!-- Add Member Button -->
       <button onclick="openAddModal()"
         class="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30">
         <span>+</span> <span>Add Member</span>
@@ -196,17 +131,17 @@
 
   <!-- Spotlight Mode Floating Notification Banner -->
   <div id="spotlightBanner" class="hidden bg-amber-500 text-slate-950 px-4 py-2 text-xs font-bold items-center justify-between shadow-md z-20 transition-all">
-    <div class="flex items-center gap-2 truncate">
+    <div class="flex items-center gap-2">
       <span class="text-sm">🎯</span>
-      <span class="truncate">Focused on <b id="spotlightNodeName">Relative</b>. Other relatives are dimmed.</span>
+      <span>Focused on <b id="spotlightNodeName">Relative</b>. Other relatives are dimmed. You can add your data directly below.</span>
     </div>
-    <button onclick="clearSpotlight()" class="px-2.5 py-1 bg-slate-900 text-white hover:bg-slate-800 rounded font-bold text-[11px] shadow-xs shrink-0 ml-2">
-      Show All
+    <button onclick="clearSpotlight()" class="px-2.5 py-1 bg-slate-900 text-white hover:bg-slate-800 rounded font-bold text-[11px] shadow-xs">
+      Show Full Tree
     </button>
   </div>
 
   <!-- Interactive SVG Canvas with Deep Zoom -->
-  <main class="flex-1 relative overflow-hidden canvas-bg cursor-grab active:cursor-grabbing touch-none" id="canvasContainer">
+  <main class="flex-1 relative overflow-hidden canvas-bg cursor-grab active:cursor-grabbing" id="canvasContainer">
     <svg id="treeSvg" class="w-full h-full absolute inset-0">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="28" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -220,60 +155,41 @@
     </svg>
 
     <!-- Canvas Navigation Controls with Deep Zoom -->
-    <div class="floating-ui absolute bottom-20 sm:bottom-5 right-4 flex flex-col space-y-1.5 bg-white border border-slate-300 rounded-2xl p-1.5 shadow-xl z-20">
-      <button onclick="zoom(1.25)" title="Deep Zoom In" class="w-10 h-10 rounded-xl hover:bg-slate-100 font-bold text-slate-700 text-xl flex items-center justify-center">+</button>
-      <button onclick="zoom(0.8)" title="Zoom Out" class="w-10 h-10 rounded-xl hover:bg-slate-100 font-bold text-slate-700 text-xl flex items-center justify-center">−</button>
-      <button onclick="resetZoom()" title="Reset View" class="w-10 h-10 rounded-xl hover:bg-slate-100 font-bold text-slate-700 text-sm flex items-center justify-center">🎯</button>
+    <div class="floating-ui absolute bottom-5 right-5 flex flex-col space-y-1.5 bg-white border border-slate-300 rounded-xl p-1.5 shadow-xl z-20">
+      <button onclick="zoom(1.25)" title="Deep Zoom In" class="w-9 h-9 rounded-lg hover:bg-slate-100 font-bold text-slate-700 text-lg flex items-center justify-center">+</button>
+      <button onclick="zoom(0.8)" title="Zoom Out" class="w-9 h-9 rounded-lg hover:bg-slate-100 font-bold text-slate-700 text-lg flex items-center justify-center">−</button>
+      <button onclick="resetZoom()" title="Reset View" class="w-9 h-9 rounded-lg hover:bg-slate-100 font-bold text-slate-700 text-sm flex items-center justify-center">🎯</button>
     </div>
   </main>
 
-  <!-- Mobile Bottom Navigation Bar (Smart Ergonomic Thumb Bar) -->
-  <nav id="mobileBottomNav" class="sm:hidden bg-slate-900 border-t border-slate-800 flex items-center justify-around px-2 py-2 text-white z-30 safe-bottom">
-    <button onclick="openAddModal()" class="flex flex-col items-center justify-center text-[10px] text-indigo-400 font-bold">
-      <span class="text-lg">➕</span> Add
-    </button>
-    <button onclick="autoArrangeTree()" class="flex flex-col items-center justify-center text-[10px] text-slate-300 font-medium">
-      <span class="text-lg">⚡</span> Align
-    </button>
-    <button onclick="shareTreeLink()" class="flex flex-col items-center justify-center text-[10px] text-emerald-400 font-medium">
-      <span class="text-lg">🔗</span> Share
-    </button>
-    <button onclick="toggleExportMenu()" class="flex flex-col items-center justify-center text-[10px] text-slate-300 font-medium">
-      <span class="text-lg">📥</span> Export
-    </button>
-    <button onclick="handleSignOut()" class="flex flex-col items-center justify-center text-[10px] text-rose-400 font-medium">
-      <span class="text-lg">🚪</span> Exit
-    </button>
-  </nav>
-
   <!-- Multi-Channel Node Share Sheet Modal -->
-  <div id="shareSheetModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in slide-in-from-bottom duration-200">
-      <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
+  <div id="shareSheetModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
         <div>
           <h2 class="text-sm font-bold">Share Node with Family</h2>
           <p id="shareSheetSubtitle" class="text-[11px] text-slate-400">Invite relative to add data to this node</p>
         </div>
-        <button onclick="closeShareSheetModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        <button onclick="closeShareSheetModal()" class="text-slate-400 hover:text-white text-xl font-bold leading-none">&times;</button>
       </div>
 
       <div class="p-5 space-y-3.5 text-xs">
         <p class="text-slate-600 leading-relaxed">
-          Send this direct node link. When opened, it automatically highlights this person, dims others, and allows verified family members to add their branch.
+          Send this direct node link. When opened, it automatically highlights this person, dims others, and allows them to add their relatives directly.
         </p>
 
         <!-- Social & Direct Share Buttons -->
         <div class="grid grid-cols-2 gap-2.5">
-          <button type="button" onclick="shareViaWhatsApp()" class="py-3 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
+          <button type="button" onclick="shareViaWhatsApp()" class="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
             <span class="text-base">💬</span> WhatsApp
           </button>
 
-          <button type="button" onclick="shareViaEmail()" class="py-3 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
+          <button type="button" onclick="shareViaEmail()" class="py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
             <span class="text-base">✉️</span> Email
           </button>
         </div>
 
-        <button type="button" onclick="shareViaDeviceNative()" class="w-full py-3 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
+        <button type="button" onclick="shareViaDeviceNative()" class="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
           <span>📲</span> Share via Other Apps (Telegram, etc.)
         </button>
 
@@ -281,8 +197,8 @@
           <label class="block font-bold text-slate-700 mb-1 text-[11px]">Direct Node Web Link</label>
           <div class="flex items-center gap-1.5">
             <input type="text" id="shareSheetUrlInput" readonly
-              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-700 font-mono text-[10px] bg-slate-50 focus:outline-none" />
-            <button type="button" onclick="copyShareSheetLink()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition">
+              class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-slate-700 font-mono text-[10px] bg-slate-50 focus:outline-none" />
+            <button type="button" onclick="copyShareSheetLink()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition">
               Copy
             </button>
           </div>
@@ -291,9 +207,52 @@
     </div>
   </div>
 
+  <!-- User Sign In / Sign Up Modal (Email-Based) -->
+  <div id="authModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 flex flex-col">
+      <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+        <div>
+          <h2 id="authModalTitle" class="text-base font-bold">Sign In / Join by Email</h2>
+          <p class="text-xs text-slate-400">Create and manage your own family lineage.</p>
+        </div>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs">
+        <div id="authNotice" class="text-slate-600 leading-relaxed">
+          Sign up with your email to create and host your own independent family tree link, or sign in to load your saved heritage workspace.
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-800 mb-1">Email ID</label>
+          <input type="email" id="authEmail" placeholder="e.g. name@domain.com"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-800 mb-1">Password / Secure PIN</label>
+          <input type="password" id="authPassword" placeholder="Enter password or PIN"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+
+        <div class="pt-2 flex flex-col gap-2">
+          <button type="button" onclick="handleAuthSubmit('signin')" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm transition">
+            Sign In to My Tree
+          </button>
+          <button type="button" onclick="handleAuthSubmit('signup')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg border border-slate-300 transition">
+            Sign Up (Create New Family Tree)
+          </button>
+          <button type="button" id="signOutBtn" onclick="handleSignOut()" class="w-full py-2 text-red-600 hover:underline font-semibold hidden">
+            Sign Out of this Account
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Full Details Inspection Modal -->
-  <div id="detailsModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in slide-in-from-bottom duration-200">
+  <div id="detailsModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
       <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
         <div>
           <h2 id="detailCardTitle" class="text-base font-bold">Relative Full Profile</h2>
@@ -345,10 +304,10 @@
         </div>
 
         <div class="pt-3 border-t border-slate-200 flex items-center justify-between">
-          <button type="button" id="btnEditFromDetails" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm">
+          <button type="button" id="btnEditFromDetails" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm">
             ✏️ Edit Details
           </button>
-          <button type="button" onclick="closeDetailsModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 font-semibold hover:bg-slate-50">
+          <button type="button" onclick="closeDetailsModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">
             Close
           </button>
         </div>
@@ -357,8 +316,8 @@
   </div>
 
   <!-- Add / Edit Member Modal Dialog -->
-  <div id="memberModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in slide-in-from-bottom duration-200">
+  <div id="memberModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
       <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
         <div>
           <h2 id="modalTitle" class="text-base font-bold tracking-tight">Add Family Relative</h2>
@@ -377,7 +336,7 @@
               Full Name <span class="text-red-500">*</span>
             </label>
             <input type="text" id="memberName" required placeholder="e.g. Ramesh Chandra Patel"
-              class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -386,12 +345,12 @@
                 Relationship with Root <span class="text-red-500">*</span>
               </label>
               <input type="text" id="memberRelToRoot" required placeholder="e.g. 1st Wife, 2nd Wife, Wife's Brother, Son"
-                class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
 
             <div>
               <label class="block font-bold text-slate-800 mb-1">Gender</label>
-              <select id="memberGender" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <select id="memberGender" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
@@ -403,7 +362,7 @@
         <div class="grid grid-cols-3 gap-2.5">
           <div>
             <label class="block font-bold text-slate-800 mb-1">Lineage Side</label>
-            <select id="memberBranch" class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold text-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <select id="memberBranch" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-semibold text-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
               <option value="paternal">🧔 Main / Husband</option>
               <option value="maternal">👩 Wife / In-Laws</option>
             </select>
@@ -411,7 +370,7 @@
 
           <div>
             <label class="block font-bold text-slate-800 mb-1">Living Status</label>
-            <select id="memberStatus" onchange="toggleDeceasedFields()" class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <select id="memberStatus" onchange="toggleDeceasedFields()" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
               <option value="alive">🌱 Living</option>
               <option value="deceased">🕊️ Deceased</option>
             </select>
@@ -419,7 +378,7 @@
 
           <div>
             <label class="block font-bold text-slate-800 mb-1">Marital Status</label>
-            <select id="memberMarital" class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold text-rose-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <select id="memberMarital" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-semibold text-rose-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
               <option value="married">💍 Married</option>
               <option value="unmarried">Unmarried (Single)</option>
             </select>
@@ -431,17 +390,17 @@
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Date of Birth</label>
             <input type="date" id="memberDob" onchange="autoCalculateAge()"
-              class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
           <div>
             <label class="block font-semibold text-slate-700 mb-1" id="lblAge">Age (or Manual Age)</label>
             <input type="number" id="memberAge" placeholder="Manual age if DOB unknown"
-              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
           <div id="deathDateContainer" class="hidden">
             <label class="block font-semibold text-slate-700 mb-1">Date of Passing</label>
             <input type="date" id="memberDod" onchange="autoCalculateAge()"
-              class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
         </div>
 
@@ -450,17 +409,17 @@
           <div>
             <label class="block font-bold text-slate-800 mb-1">Gotra</label>
             <input type="text" id="memberGotra" placeholder="e.g. Kashyap"
-              class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
           <div>
             <label class="block font-bold text-slate-800 mb-1">Bansa</label>
             <input type="text" id="memberBansa" placeholder="e.g. Suryavansh"
-              class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
           <div>
             <label class="block font-bold text-slate-800 mb-1">Profession</label>
             <input type="text" id="memberProfession" placeholder="e.g. Teacher"
-              class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
         </div>
 
@@ -469,12 +428,12 @@
           <div>
             <label class="block font-bold text-slate-800 mb-1">Phone Number</label>
             <input type="tel" id="memberPhone" placeholder="e.g. +91 98765 43210"
-              class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
           <div>
             <label class="block font-bold text-slate-800 mb-1">Address / Residence</label>
             <input type="text" id="memberAddress" placeholder="e.g. Sambalpur, Odisha"
-              class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
         </div>
 
@@ -484,11 +443,11 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-slate-600 mb-1">Select Relative</label>
-              <select id="linkTargetNode" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
+              <select id="linkTargetNode" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
             </div>
             <div>
               <label class="block text-slate-600 mb-1">This Person Is Their:</label>
-              <select id="linkRelationType" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <select id="linkRelationType" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 <option value="child">Child (Next Generation: Son / Daughter)</option>
                 <option value="spouse">Spouse / Wife (Supports Multiple Wives)</option>
                 <option value="sibling">Sibling (Brother / Sister / Wife's Sibling)</option>
@@ -503,10 +462,10 @@
 
         <!-- Node Specific Actions: Single PDF & Individual Share -->
         <div id="nodeSpecificActions" class="pt-3 border-t border-slate-200 hidden justify-between items-center">
-          <button type="button" onclick="exportSinglePersonPDF()" class="px-2.5 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold border border-indigo-200 flex items-center gap-1">
+          <button type="button" onclick="exportSinglePersonPDF()" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold border border-indigo-200 flex items-center gap-1">
             📄 Single Person PDF
           </button>
-          <button type="button" onclick="openShareSheetForActiveNode()" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold border border-emerald-200 flex items-center gap-1">
+          <button type="button" onclick="openShareSheetForActiveNode()" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold border border-emerald-200 flex items-center gap-1">
             📤 Share Node Options
           </button>
         </div>
@@ -515,16 +474,16 @@
         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
           <div>
             <button type="button" id="btnDelete" onclick="deleteCurrentNode()"
-              class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl font-bold text-xs transition flex items-center gap-1">
+              class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg font-bold text-xs transition flex items-center gap-1">
               🗑️ Delete Member
             </button>
           </div>
 
           <div class="flex items-center space-x-2.5 ml-auto">
-            <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 font-semibold hover:bg-slate-50 transition">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition">
               Cancel
             </button>
-            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition">
+            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md transition">
               Save Member
             </button>
           </div>
@@ -558,23 +517,22 @@
     </table>
   </div>
 
-  <!-- FIREBASE REALTIME DATABASE MODULE WITH YOUR EXACT CONFIGURATION -->
+  <!-- HARDCODED FIREBASE REALTIME DATABASE MODULE WITH MULTI-TENANT ACCOUNTS -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     // =========================================================================
-    // YOUR HARDCODED FIREBASE CONFIGURATION
+    // PASTE YOUR REAL FIREBASE CONFIGURATION HERE
     // =========================================================================
-    const firebaseConfig = {
-      apiKey: "AIzaSyBbi1Bh5bOScSNX5Hf9UcYTo_6C_7EtCiQ",
-      authDomain: "vanshavali-heritage-tree.firebaseapp.com",
-      databaseURL: "https://vanshavali-heritage-tree-default-rtdb.firebaseio.com",
-      projectId: "vanshavali-heritage-tree",
-      storageBucket: "vanshavali-heritage-tree.firebasestorage.app",
-      messagingSenderId: "188938879243",
-      appId: "1:188938879243:web:0a57d909f4267fa369220e",
-      measurementId: "G-2SM068VLC8"
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyYOUR_ACTUAL_API_KEY_HERE",
+      authDomain: "your-project-id.firebaseapp.com",
+      databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project-id.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abcdef123456"
     };
     // =========================================================================
 
@@ -582,13 +540,17 @@
     let treeRef = null;
 
     function initFirebase() {
-      try {
-        const app = initializeApp(firebaseConfig);
-        firebaseDb = getDatabase(app);
-        attachFirebaseTreeListener();
-        setSyncStatus(true);
-      } catch (err) {
-        console.error("Firebase connection error:", err);
+      if (FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes("YOUR_ACTUAL_API_KEY")) {
+        try {
+          const app = initializeApp(FIREBASE_CONFIG);
+          firebaseDb = getDatabase(app);
+          attachFirebaseTreeListener();
+          setSyncStatus(true);
+        } catch (err) {
+          console.error("Firebase connection error:", err);
+          setSyncStatus(false);
+        }
+      } else {
         setSyncStatus(false);
       }
     }
@@ -633,8 +595,8 @@
 
   <!-- Core Application Script -->
   <script>
-    const USER_ACCOUNT_KEY = "vanshavali_active_account_v6";
-    const REGISTERED_ACCOUNTS_KEY = "vanshavali_registered_accounts_v6";
+    const USER_ACCOUNT_KEY = "vanshavali_active_account_v5";
+    const REGISTERED_ACCOUNTS_KEY = "vanshavali_registered_accounts_v5";
 
     let state = {
       nodes: [],
@@ -648,12 +610,13 @@
       spotlightNodeId: null
     };
 
+    // Uniform dimensions for all node cards across the graph
     const CARD_WIDTH = 230;
     const CARD_HEIGHT = 180;
 
     let currentSharingNodeId = null;
 
-    // Default Seed Heritage Tree
+    // Default Multi-Spouse & In-Laws Heritage Structure with Marital Status
     const defaultData = {
       nodes: [
         { id: "node_1", branch: "paternal", name: "Prithviraj Patel", relationship_to_root: "Great-Grandfather", gender: "male", marital_status: "married", status: "deceased", dod: "1982-11-20", gotra: "Kashyap", bansa: "Suryavansh", age: 84, profession: "Landowner", phone: "", address: "Barpali", x: 260, y: 40 },
@@ -681,6 +644,7 @@
       ]
     };
 
+    // --- Authentication & Room Resolution ---
     window.getCurrentRoomId = function() {
       const urlParams = new URLSearchParams(window.location.search);
       const sharedRoom = urlParams.get("room");
@@ -694,104 +658,77 @@
       return "family_heritage_tree_root";
     };
 
-    // =========================================================================
-    // 2. FIRST-SCREEN GATEWAY VERIFICATION & SECURITY CONTROLS
-    // =========================================================================
-    function checkAuthGatewayStatus() {
+    function updateAuthHeaderUI() {
       const activeUser = JSON.parse(localStorage.getItem(USER_ACCOUNT_KEY) || "null");
-      const gateway = document.getElementById("authGatewayScreen");
+      const urlParams = new URLSearchParams(window.location.search);
+      const isSharedView = !!urlParams.get("room");
 
-      if (activeUser && activeUser.email && activeUser.verifiedName) {
-        gateway.classList.add("hidden");
-        document.getElementById("authBtnLabel").textContent = activeUser.verifiedName.split(' ')[0] || "Sign Out";
+      if (isSharedView) {
+        document.getElementById("authBtnLabel").textContent = "Shared Tree (Direct)";
+        document.getElementById("authNotice").innerHTML = `
+          You are viewing a <b>shared family tree</b> via direct link. You can add and view relatives directly.<br/><br/>
+          Want to start your own separate family tree? Sign up below:
+        `;
+      } else if (activeUser) {
+        document.getElementById("authBtnLabel").textContent = activeUser.email.split('@')[0];
+        document.getElementById("authNotice").innerHTML = `Logged in as <b>${escapeHtml(activeUser.email)}</b>. All changes save to your personal tree.`;
+        document.getElementById("signOutBtn").classList.remove("hidden");
       } else {
-        gateway.classList.remove("hidden");
+        document.getElementById("authBtnLabel").textContent = "Sign In / Join";
+        document.getElementById("authNotice").textContent = "Sign up with your email to create your own family tree, or sign in to load your personal lineage.";
+        document.getElementById("signOutBtn").classList.add("hidden");
       }
     }
 
-    // Sign in verification: Validates if the person's name exists in the family records
-    function verifyAndSignIn() {
-      const enteredName = document.getElementById("gateFullName").value.trim();
-      const enteredEmail = document.getElementById("gateEmail").value.trim().toLowerCase();
-      const enteredPin = document.getElementById("gatePin").value.trim();
-
-      if (!enteredName) {
-        alert("Please enter your Full Name as it appears on our family tree.");
-        return;
-      }
-      if (!enteredEmail || !enteredPin) {
-        alert("Please enter your Email and Password/PIN.");
-        return;
-      }
-
-      // Check against current family tree nodes
-      const nameMatchedNode = state.nodes.find(n => n.name.trim().toLowerCase() === enteredName.toLowerCase());
-
-      if (!nameMatchedNode) {
-        alert(`❌ Access Denied!\n\nThe name "${enteredName}" is not registered on this family tree.\n\nOnly verified relatives already linked in this heritage register can access it to prevent unauthorized manipulation.\n\nIf you are from a different family, click "Start / Create New Separate Family Tree".`);
-        return;
-      }
-
-      // Save user session and link with verified person node
-      const accounts = JSON.parse(localStorage.getItem(REGISTERED_ACCOUNTS_KEY) || "{}");
-      accounts[enteredEmail] = { pin: enteredPin, verifiedName: nameMatchedNode.name, nodeId: nameMatchedNode.id };
-      localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(accounts));
-      localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({ email: enteredEmail, verifiedName: nameMatchedNode.name, nodeId: nameMatchedNode.id }));
-
-      document.getElementById("authGatewayScreen").classList.add("hidden");
-      alert(`Welcome, ${nameMatchedNode.name}!\n\nYour identity is verified. You now have full access to your family tree.`);
-      focusOnNode(nameMatchedNode.id, false);
+    function openAuthModal() {
+      document.getElementById("authModal").classList.remove("hidden");
+      document.getElementById("authModal").classList.add("flex");
+    }
+    function closeAuthModal() {
+      document.getElementById("authModal").classList.add("hidden");
+      document.getElementById("authModal").classList.remove("flex");
     }
 
-    // New family tree creation for unlinked or external users
-    function registerNewFamilyTree() {
-      const enteredName = document.getElementById("gateFullName").value.trim();
-      const enteredEmail = document.getElementById("gateEmail").value.trim().toLowerCase();
-      const enteredPin = document.getElementById("gatePin").value.trim();
+    function handleAuthSubmit(type) {
+      const email = document.getElementById("authEmail").value.trim().toLowerCase();
+      const pin = document.getElementById("authPassword").value.trim();
 
-      if (!enteredName || !enteredEmail || !enteredPin) {
-        alert("Please fill in your Full Name, Email, and Password/PIN to create your family tree.");
+      if (!email || !pin) {
+        alert("Please enter both email ID and password/PIN.");
         return;
       }
 
-      const safeKey = enteredEmail.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-      const newRoom = "room_" + safeKey;
+      if (!email.includes("@") || !email.includes(".")) {
+        alert("Please enter a valid email ID.");
+        return;
+      }
 
-      const rootNode = {
-        id: "node_root_" + Date.now(),
-        branch: "paternal",
-        name: enteredName,
-        relationship_to_root: "Root (Self)",
-        gender: "male",
-        marital_status: "married",
-        status: "alive",
-        gotra: "",
-        bansa: "",
-        age: null,
-        profession: "",
-        phone: "",
-        address: "",
-        x: 260,
-        y: 120
-      };
+      let accounts = JSON.parse(localStorage.getItem(REGISTERED_ACCOUNTS_KEY) || "{}");
 
-      const initialTree = { nodes: [rootNode], links: [] };
-      localStorage.setItem("vanshavali_tree_data_" + newRoom, JSON.stringify(initialTree));
-
-      const accounts = JSON.parse(localStorage.getItem(REGISTERED_ACCOUNTS_KEY) || "{}");
-      accounts[enteredEmail] = { pin: enteredPin, verifiedName: enteredName, nodeId: rootNode.id };
-      localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(accounts));
-      localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({ email: enteredEmail, verifiedName: enteredName, nodeId: rootNode.id }));
-
-      alert(`Your personal family tree for "${enteredName}" has been created! You can now add your parents, spouse, siblings, and children.`);
-      window.location.href = window.location.origin + window.location.pathname;
+      if (type === "signup") {
+        if (accounts[email]) {
+          alert("This email is already registered. Please sign in or use another email.");
+          return;
+        }
+        accounts[email] = { pin: pin, created: Date.now() };
+        localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(accounts));
+        localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({ email: email }));
+        alert(`Account created successfully! Your personal family tree is now active.`);
+        window.location.href = window.location.origin + window.location.pathname;
+      } else {
+        if (!accounts[email] || accounts[email].pin !== pin) {
+          alert("Invalid email ID or password/PIN.");
+          return;
+        }
+        localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({ email: email }));
+        window.location.href = window.location.origin + window.location.pathname;
+      }
     }
 
     function handleSignOut() {
-      if (confirm("Are you sure you want to sign out? You will need to re-verify your name to access the family tree again.")) {
-        localStorage.removeItem(USER_ACCOUNT_KEY);
-        window.location.href = window.location.origin + window.location.pathname;
-      }
+      localStorage.removeItem(USER_ACCOUNT_KEY);
+      alert("Signed out successfully.");
+      window.location.href = window.location.origin + window.location.pathname;
     }
 
     // --- Multi-Channel Node Share Logic ---
@@ -872,6 +809,7 @@
 
     // --- Init & Storage Sync ---
     function init() {
+      updateAuthHeaderUI();
       const currentRoom = window.getCurrentRoomId();
       const storageKey = "vanshavali_tree_data_" + currentRoom;
 
@@ -915,7 +853,6 @@
 
       render();
       attachCanvasEvents();
-      checkAuthGatewayStatus();
 
       if (focusTarget) {
         setTimeout(() => focusOnNode(focusTarget, true), 300);
@@ -951,6 +888,7 @@
       return node.branch === state.activeBranch;
     }
 
+    // Unlimited recursive descendant and sub-branch discovery with cycle prevention
     function getAllDescendantIds(parentId) {
       const descendants = new Set();
       const queue = [parentId];
@@ -987,6 +925,7 @@
       return false;
     }
 
+    // --- Spotlight Mode Controls ---
     function clearSpotlight() {
       state.spotlightNodeId = null;
       document.getElementById("spotlightBanner").classList.add("hidden");
@@ -998,6 +937,7 @@
       const node = state.nodes.find(n => n.id === nodeId);
       if (!node) return;
 
+      // Expand any collapsed ancestors so node is guaranteed visible
       state.collapsedNodes.forEach(cId => {
         if (getAllDescendantIds(cId).has(nodeId)) {
           state.collapsedNodes.delete(cId);
@@ -1038,7 +978,7 @@
           }).catch(() => {});
         } else {
           navigator.clipboard.writeText(shareUrl);
-          alert("Direct Shared Tree Link copied to clipboard!\n\nWhen family members open this link, they can sign in and add relatives directly.");
+          alert("Direct Shared Tree Link copied to clipboard!\n\nWhen family members open this link, they immediately access this tree and can add relatives directly without logging in.");
         }
       } catch (err) {
         alert("Payload exceeds URL size limit. Please export to Excel or JSON.");
@@ -1230,6 +1170,7 @@
           ? `<span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-200">💍 Married</span>`
           : `<span class="px-1.5 py-0.5 rounded text-[8px] font-medium bg-slate-100 text-slate-600 border border-slate-200">Unmarried</span>`;
 
+        // Consistent Minimize/Expand option uniformly available across every node
         const isCollapsed = state.collapsedNodes.has(node.id);
         const collapseBtn = `<button type="button" onclick="event.stopPropagation(); toggleCollapseSubtree('${node.id}')"
             class="px-1.5 py-0.5 rounded text-[9px] font-bold transition ${isCollapsed ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
@@ -1280,7 +1221,7 @@
               ${node.phone ? `<div class="truncate text-[9px] text-slate-500">📞 ${escapeHtml(node.phone)}</div>` : ''}
             </div>
 
-            <!-- Uniform Node Actions: Share + Add Relative -->
+            <!-- Uniform Node Actions for every node: Share + Add Relative -->
             <div class="pt-1.5 border-t border-slate-100 flex items-center justify-between gap-1">
               <button type="button" onclick="event.stopPropagation(); openShareSheet('${node.id}')"
                 class="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-200 rounded text-[10px] font-bold transition flex items-center gap-0.5">
@@ -1316,41 +1257,13 @@
       window.addEventListener("mousemove", (e) => move(e.clientX, e.clientY));
       window.addEventListener("mouseup", end);
 
-      // Mobile Touch Panning & Pinch-to-Zoom Engine
-      let initialPinchDistance = null;
-      let initialZoom = 1;
-
       container.addEventListener("touchstart", (e) => {
-        if (e.touches.length === 1 && !e.target.closest(".node-card")) {
-          start(e.touches[0].clientX, e.touches[0].clientY);
-        } else if (e.touches.length === 2) {
-          state.isDraggingCanvas = false;
-          initialPinchDistance = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
-          );
-          initialZoom = state.zoom;
-        }
+        if (e.touches.length === 1 && !e.target.closest(".node-card")) start(e.touches[0].clientX, e.touches[0].clientY);
       }, { passive: true });
-
       window.addEventListener("touchmove", (e) => {
-        if (e.touches.length === 1 && state.isDraggingCanvas) {
-          move(e.touches[0].clientX, e.touches[0].clientY);
-        } else if (e.touches.length === 2 && initialPinchDistance) {
-          const currentDistance = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
-          );
-          const factor = currentDistance / initialPinchDistance;
-          state.zoom = Math.max(0.2, Math.min(5.0, initialZoom * factor));
-          updateTransform();
-        }
+        if (e.touches.length === 1 && state.isDraggingCanvas) move(e.touches[0].clientX, e.touches[0].clientY);
       }, { passive: true });
-
-      window.addEventListener("touchend", () => {
-        end();
-        initialPinchDistance = null;
-      });
+      window.addEventListener("touchend", end);
     }
 
     function attachNodeDrag(elem, node) {
@@ -1674,7 +1587,7 @@
       document.getElementById("exportDropdown").classList.toggle("hidden");
     }
     window.addEventListener("click", (e) => {
-      if (!e.target.closest(".relative") && !e.target.closest("#mobileBottomNav")) {
+      if (!e.target.closest(".relative")) {
         document.getElementById("exportDropdown").classList.add("hidden");
       }
     });
