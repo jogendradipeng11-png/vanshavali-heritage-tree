@@ -2,69 +2,161 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Vanshavali Heritage Tree</title>
 
-  <!-- Tailwind CSS -->
+  <!-- Mobile Progressive Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- SheetJS (Excel) -->
+  <!-- SheetJS (Excel .xlsx Export) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- jsPDF & AutoTable -->
+  <!-- jsPDF & AutoTable Plugin -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Firebase v10 Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
   <style>
     .no-select { user-select: none; -webkit-user-select: none; }
     
-    /* Modern crisp dot canvas pattern */
     .canvas-bg {
-      background-color: #f8fafc;
-      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-color: #0b1120;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.22) 1.5px, transparent 1.5px);
       background-size: 24px 24px;
     }
 
-    /* Card styling & typography */
     .tree-card {
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease, border-color 0.2s ease;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, opacity 0.2s ease;
+      pointer-events: auto !important;
     }
     .tree-card:hover {
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
-      border-color: #4f46e5 !important;
+      box-shadow: 0 20px 30px -10px rgba(99, 102, 241, 0.45);
+      transform: translateY(-2px);
     }
 
-    /* Spotlight highlight styles */
     .spotlight-active {
-      transform: scale(1.04);
-      box-shadow: 0 0 25px rgba(245, 158, 11, 0.45), 0 10px 25px -5px rgba(15, 23, 42, 0.25) !important;
+      transform: scale(1.05) translateY(-2px) !important;
+      box-shadow: 0 0 35px rgba(245, 158, 11, 0.7), 0 15px 30px -5px rgba(0, 0, 0, 0.5) !important;
     }
 
-    /* Print styles */
+    .safe-top { padding-top: max(0.6rem, env(safe-area-inset-top)); }
+    .safe-bottom { padding-bottom: max(0.6rem, env(safe-area-inset-bottom)); }
+
     @media print {
       body * { visibility: hidden; }
       #printableArea, #printableArea * { visibility: visible; }
-      #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
-      header, .floating-ui, #canvasContainer, #spotlightBanner { display: none !important; }
+      #printableArea { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
+      header, .floating-ui, #canvasContainer, #spotlightBanner, #mobileBottomNav, #authGatewayScreen, #cloudModal, #toastContainer, #confirmModal { display: none !important; }
     }
   </style>
 </head>
-<body class="h-screen w-screen flex flex-col overflow-hidden bg-slate-900 text-slate-800 font-sans antialiased">
+<body class="h-screen w-screen flex flex-col overflow-hidden bg-slate-950 text-slate-800 font-sans antialiased">
 
-  <!-- Top Header Navigation -->
-  <header class="bg-slate-900 text-white border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shadow-lg z-30 flex-wrap gap-2">
-    <!-- Brand & Status -->
-    <div class="flex items-center space-x-3">
-      <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-500/30">
-        🌿
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Custom Confirm Dialog Modal -->
+  <div id="confirmModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9998] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4 border border-slate-200">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-lg font-bold">⚠️</div>
+        <h3 id="confirmTitle" class="font-bold text-slate-900 text-sm">Please Confirm</h3>
       </div>
+      <p id="confirmMessage" class="text-xs text-slate-600 leading-relaxed"></p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="confirmCancelBtn" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100">Cancel</button>
+        <button type="button" id="confirmOkBtn" class="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authentication Gateway Modal -->
+  <div id="authGatewayScreen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+      <div class="px-6 py-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white text-center">
+        <div class="h-14 w-14 rounded-2xl bg-indigo-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/40 mb-3">🌿</div>
+        <h1 class="text-xl font-black tracking-tight">Vanshavali Heritage Tree</h1>
+        <p class="text-xs text-slate-300 mt-1">Ancestral Lineage, Gotra & Relations Archive</p>
+        <div class="inline-block mt-3 px-3 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-[10px] font-bold">
+          ⚡ Instant Google Sign In or Lineage Entry
+        </div>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs">
+        <button type="button" onclick="window.signInWithGoogleAccount()" class="w-full py-3.5 px-4 bg-white hover:bg-slate-50 border-2 border-slate-300 hover:border-indigo-500 rounded-xl font-bold text-slate-700 shadow-sm flex items-center justify-center gap-3 transition group">
+          <svg class="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span class="text-sm font-extrabold text-slate-800">Continue with Google (Gmail)</span>
+        </button>
+
+        <p class="text-[11px] text-slate-500 text-center leading-tight">
+          One-tap verified sign-in. Verified relatives immediately gain live sync access to their ancestral branches.
+        </p>
+
+        <div class="flex items-center my-2">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="px-3 text-slate-400 font-bold uppercase text-[10px]">Or Manual Lineage Entry</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-800 mb-1">Your Full Name <span class="text-red-500">*</span></label>
+          <input type="text" id="gateFullName" placeholder="e.g. Ramesh Patel or Husband / Self"
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-800 mb-1">Email Address <span class="text-red-500">*</span></label>
+          <input type="email" id="gateEmail" placeholder="e.g. yourname@gmail.com"
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-800 mb-1">Passcode / PIN <span class="text-red-500">*</span></label>
+          <input type="password" id="gatePin" placeholder="Enter PIN or password"
+            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+
+        <div class="pt-2 flex flex-col gap-2">
+          <button type="button" onclick="window.verifyAndSignIn()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+            <span>🔐</span> <span>Sign In to Existing Tree</span>
+          </button>
+
+          <button type="button" onclick="window.registerNewFamilyTree()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border border-slate-300 transition text-[11px]">
+            🌱 Start New Tree (With 3 Ancestor Generations)
+          </button>
+          
+          <button type="button" onclick="window.skipGatewayForPreview()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold transition text-[11px] underline">
+            Browse Demo Tree (Skip Login)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header Navigation Bar -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shadow-lg z-30 flex-wrap gap-2 safe-top">
+    <div class="flex items-center space-x-3">
+      <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-500/30">🌿</div>
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-sm font-bold tracking-tight text-white">Vanshavali Heritage Tree</h1>
-          <span id="syncBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+          <button type="button" onclick="window.openCloudDiagnosticModal()" id="syncBadge" title="Click to view Cloud Diagnostics" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 transition hover:brightness-110 cursor-pointer">
             <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> Connecting Cloud...
-          </span>
+          </button>
         </div>
         <p class="text-[11px] text-slate-400">Interconnected Multi-Spouse & In-Law Heritage Archive</p>
       </div>
@@ -73,7 +165,7 @@
     <!-- Lineage Branch Perspective Switcher -->
     <div class="flex items-center space-x-1.5 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
       <span class="text-xs text-slate-400 font-medium">Branch:</span>
-      <select id="lineageFilter" onchange="filterBranchView(this.value)" class="bg-transparent text-xs text-indigo-300 font-bold focus:outline-none cursor-pointer">
+      <select id="lineageFilter" onchange="window.filterBranchView(this.value)" class="bg-transparent text-xs text-indigo-300 font-bold focus:outline-none cursor-pointer">
         <option value="all" class="bg-slate-800 text-white">🌐 All Connected Trees</option>
         <option value="paternal" class="bg-slate-800 text-white">🧔 Main / Paternal Lineage</option>
         <option value="maternal" class="bg-slate-800 text-white">👩 Wife / In-Law Lineage</option>
@@ -82,70 +174,59 @@
 
     <!-- Live Search -->
     <div class="relative w-36 sm:w-48">
-      <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Search person, gotra, phone..."
+      <input type="text" id="searchInput" oninput="window.handleSearch(this.value)" placeholder="Search person, gotra, phone..."
         class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
       <span class="absolute right-2.5 top-1.5 text-xs text-slate-400">🔍</span>
     </div>
 
-    <!-- Action Toolbar -->
-    <div class="flex items-center space-x-2">
-      <!-- Auto Align -->
-      <button onclick="autoArrangeTree()" title="Auto-align generations"
-        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1 shadow-sm">
-        <span>⚡</span> <span class="hidden sm:inline">Align</span>
+    <!-- Action Toolbar (Desktop View) -->
+    <div class="hidden sm:flex items-center space-x-2">
+      <button onclick="window.autoArrangeTree()" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1">
+        <span>⚡</span> <span>Align</span>
       </button>
 
-      <!-- Share Link -->
-      <button onclick="shareTreeLink()" title="Share Link with family"
-        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1 shadow-sm shadow-emerald-900/30">
-        <span>🔗</span> <span class="hidden sm:inline">Share</span>
+      <button onclick="window.shareTreeLink()" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1 shadow-sm">
+        <span>🔗</span> <span>Share</span>
       </button>
 
-      <!-- Export Menu -->
       <div class="relative">
-        <button onclick="toggleExportMenu()"
-          class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1">
+        <button onclick="window.toggleExportMenu()" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1">
           <span>📥</span> <span>Export</span> <span class="text-[10px]">▾</span>
         </button>
-        <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 text-xs">
-          <button onclick="exportToPDF()" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-slate-700 font-medium border-b border-slate-100 flex items-center gap-2">📄 Export Full PDF</button>
-          <button onclick="exportToExcel()" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-slate-700 font-medium border-b border-slate-100 flex items-center gap-2">📊 Export Excel (.xlsx)</button>
-          <button onclick="exportToWord()" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-slate-700 font-medium border-b border-slate-100 flex items-center gap-2">📝 Export Word (.doc)</button>
-          <button onclick="window.print()" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2">🖨️ Print View</button>
+        <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 text-xs">
+          <button onclick="window.exportToPDF()" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-slate-700 font-medium border-b border-slate-100 flex items-center gap-2">🖼️ Visual Graph & List PDF</button>
+          <button onclick="window.exportToExcel()" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-slate-700 font-medium border-b border-slate-100 flex items-center gap-2">📊 Export Excel (.xlsx)</button>
+          <button onclick="window.exportToWord()" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-slate-700 font-medium border-b border-slate-100 flex items-center gap-2">📝 Export Word (.doc)</button>
+          <button onclick="window.printFullRegister()" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2">🖨️ Print View Register</button>
         </div>
       </div>
 
-      <!-- User Account Button -->
-      <button id="authBtn" onclick="openAuthModal()"
-        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1">
-        <span>👤</span> <span id="authBtnLabel">Sign In</span>
+      <button onclick="window.handleSignOut()" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+        <span>👤</span> <span id="authBtnLabel">Sign Out</span>
       </button>
 
-      <!-- Add Member Button -->
-      <button onclick="openAddModal()"
-        class="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30">
+      <button onclick="window.openAddModal()" class="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md">
         <span>+</span> <span>Add Member</span>
       </button>
     </div>
   </header>
 
-  <!-- Spotlight Mode Floating Notification Banner -->
+  <!-- Spotlight Mode Banner -->
   <div id="spotlightBanner" class="hidden bg-amber-500 text-slate-950 px-4 py-2 text-xs font-bold items-center justify-between shadow-md z-20 transition-all">
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 truncate">
       <span class="text-sm">🎯</span>
-      <span>Focused on <b id="spotlightNodeName">Relative</b>. Other relatives are dimmed. You can add your data directly below.</span>
+      <span class="truncate">Focused on <b id="spotlightNodeName">Relative</b>. Other relatives are dimmed.</span>
     </div>
-    <button onclick="clearSpotlight()" class="px-2.5 py-1 bg-slate-900 text-white hover:bg-slate-800 rounded font-bold text-[11px] shadow-xs">
-      Show Full Tree
+    <button onclick="window.clearSpotlight()" class="px-2.5 py-1 bg-slate-900 text-white hover:bg-slate-800 rounded font-bold text-[11px] shrink-0 ml-2">
+      Show All
     </button>
   </div>
 
-  <!-- Interactive SVG Canvas with Deep Zoom -->
-  <main class="flex-1 relative overflow-hidden canvas-bg cursor-grab active:cursor-grabbing" id="canvasContainer">
+  <main class="flex-1 relative overflow-hidden canvas-bg" id="canvasContainer">
     <svg id="treeSvg" class="w-full h-full absolute inset-0">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="28" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#475569" />
+          <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#818cf8" />
         </marker>
       </defs>
       <g id="viewportGroup">
@@ -154,115 +235,119 @@
       </g>
     </svg>
 
-    <!-- Canvas Navigation Controls with Deep Zoom -->
-    <div class="floating-ui absolute bottom-5 right-5 flex flex-col space-y-1.5 bg-white border border-slate-300 rounded-xl p-1.5 shadow-xl z-20">
-      <button onclick="zoom(1.25)" title="Deep Zoom In" class="w-9 h-9 rounded-lg hover:bg-slate-100 font-bold text-slate-700 text-lg flex items-center justify-center">+</button>
-      <button onclick="zoom(0.8)" title="Zoom Out" class="w-9 h-9 rounded-lg hover:bg-slate-100 font-bold text-slate-700 text-lg flex items-center justify-center">−</button>
-      <button onclick="resetZoom()" title="Reset View" class="w-9 h-9 rounded-lg hover:bg-slate-100 font-bold text-slate-700 text-sm flex items-center justify-center">🎯</button>
+    <!-- Canvas Navigation Controls -->
+    <div class="floating-ui absolute bottom-20 sm:bottom-5 right-4 flex flex-col space-y-1.5 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl p-1.5 shadow-2xl z-20">
+      <button onclick="window.zoom(1.25)" title="Zoom in" class="w-10 h-10 rounded-xl hover:bg-slate-800 font-bold text-white text-xl flex items-center justify-center transition active:scale-95">+</button>
+      <button onclick="window.zoom(0.8)" title="Zoom out" class="w-10 h-10 rounded-xl hover:bg-slate-800 font-bold text-white text-xl flex items-center justify-center transition active:scale-95">−</button>
+      <button onclick="window.resetZoom()" title="Reset viewport" class="w-10 h-10 rounded-xl hover:bg-slate-800 font-bold text-white text-sm flex items-center justify-center transition active:scale-95">🎯</button>
     </div>
   </main>
 
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav id="mobileBottomNav" class="sm:hidden bg-slate-900 border-t border-slate-800 flex items-center justify-around px-2 py-2 text-white z-30 safe-bottom">
+    <button onclick="window.openAddModal()" class="flex flex-col items-center justify-center text-[10px] text-indigo-400 font-bold">
+      <span class="text-lg">➕</span> Add
+    </button>
+    <button onclick="window.autoArrangeTree()" class="flex flex-col items-center justify-center text-[10px] text-slate-300 font-medium">
+      <span class="text-lg">⚡</span> Align
+    </button>
+    <button onclick="window.shareTreeLink()" class="flex flex-col items-center justify-center text-[10px] text-emerald-400 font-medium">
+      <span class="text-lg">🔗</span> Share
+    </button>
+    <button onclick="window.toggleExportMenu()" class="flex flex-col items-center justify-center text-[10px] text-slate-300 font-medium">
+      <span class="text-lg">📥</span> Export
+    </button>
+    <button onclick="window.handleSignOut()" class="flex flex-col items-center justify-center text-[10px] text-rose-400 font-medium">
+      <span class="text-lg">🚪</span> Exit
+    </button>
+  </nav>
+
+  <div id="cloudModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">☁️</span>
+          <div>
+            <h2 class="text-sm font-bold">Firebase Realtime Sync</h2>
+            <p class="text-[10px] text-slate-400">Connection & Channel State</p>
+          </div>
+        </div>
+        <button onclick="window.closeCloudDiagnosticModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
+      </div>
+      <div class="p-5 space-y-3 text-xs">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500 font-semibold">Socket State:</span>
+            <span id="diagSocketStatus" class="font-bold text-slate-800">Checking...</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500 font-semibold">Sync Channel / Room:</span>
+            <span id="diagRoomId" class="font-mono text-[11px] font-bold text-indigo-600 truncate max-w-[170px]">family_heritage_tree_root</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500 font-semibold">Last Cloud Sync:</span>
+            <span id="diagLastSync" class="font-medium text-slate-700">None</span>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          All lineage modifications automatically synchronize across all registered devices.
+        </p>
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="window.testCloudWrite()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow">
+            Test Cloud Push
+          </button>
+          <button type="button" onclick="window.closeCloudDiagnosticModal()" class="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-700 font-semibold hover:bg-slate-50">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Multi-Channel Node Share Sheet Modal -->
-  <div id="shareSheetModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
-      <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
+  <div id="shareSheetModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 flex flex-col">
+      <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
         <div>
           <h2 class="text-sm font-bold">Share Node with Family</h2>
-          <p id="shareSheetSubtitle" class="text-[11px] text-slate-400">Invite relative to add data to this node</p>
+          <p id="shareSheetSubtitle" class="text-[11px] text-slate-400">Invite relative to add data</p>
         </div>
-        <button onclick="closeShareSheetModal()" class="text-slate-400 hover:text-white text-xl font-bold leading-none">&times;</button>
+        <button onclick="window.closeShareSheetModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
       </div>
-
       <div class="p-5 space-y-3.5 text-xs">
-        <p class="text-slate-600 leading-relaxed">
-          Send this direct node link. When opened, it automatically highlights this person, dims others, and allows them to add their relatives directly.
-        </p>
-
-        <!-- Social & Direct Share Buttons -->
         <div class="grid grid-cols-2 gap-2.5">
-          <button type="button" onclick="shareViaWhatsApp()" class="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
-            <span class="text-base">💬</span> WhatsApp
+          <button type="button" onclick="window.shareViaWhatsApp()" class="py-3 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-bold flex items-center justify-center gap-2">
+            💬 WhatsApp
           </button>
-
-          <button type="button" onclick="shareViaEmail()" class="py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
-            <span class="text-base">✉️</span> Email
+          <button type="button" onclick="window.shareViaEmail()" class="py-3 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-xl font-bold flex items-center justify-center gap-2">
+            ✉️ Email
           </button>
         </div>
-
-        <button type="button" onclick="shareViaDeviceNative()" class="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-xs">
-          <span>📲</span> Share via Other Apps (Telegram, etc.)
+        <button type="button" onclick="window.shareViaDeviceNative()" class="w-full py-3 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center gap-2">
+          📲 Share via Other Apps
         </button>
-
         <div class="pt-2 border-t border-slate-200">
           <label class="block font-bold text-slate-700 mb-1 text-[11px]">Direct Node Web Link</label>
           <div class="flex items-center gap-1.5">
-            <input type="text" id="shareSheetUrlInput" readonly
-              class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-slate-700 font-mono text-[10px] bg-slate-50 focus:outline-none" />
-            <button type="button" onclick="copyShareSheetLink()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition">
-              Copy
-            </button>
+            <input type="text" id="shareSheetUrlInput" readonly class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-700 font-mono text-[10px] bg-slate-50" />
+            <button type="button" onclick="window.copyShareSheetLink()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs">Copy</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- User Sign In / Sign Up Modal (Email-Based) -->
-  <div id="authModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200 flex flex-col">
+  <div id="detailsModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col">
       <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
         <div>
-          <h2 id="authModalTitle" class="text-base font-bold">Sign In / Join by Email</h2>
-          <p class="text-xs text-slate-400">Create and manage your own family lineage.</p>
+          <h2 id="detailCardTitle" class="text-base font-bold">Relative Profile Details</h2>
+          <p class="text-xs text-slate-400">Complete heritage, gotra, vitals, and connections.</p>
         </div>
-        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
-      </div>
-
-      <div class="p-6 space-y-4 text-xs">
-        <div id="authNotice" class="text-slate-600 leading-relaxed">
-          Sign up with your email to create and host your own independent family tree link, or sign in to load your saved heritage workspace.
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-800 mb-1">Email ID</label>
-          <input type="email" id="authEmail" placeholder="e.g. name@domain.com"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-800 mb-1">Password / Secure PIN</label>
-          <input type="password" id="authPassword" placeholder="Enter password or PIN"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-        </div>
-
-        <div class="pt-2 flex flex-col gap-2">
-          <button type="button" onclick="handleAuthSubmit('signin')" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm transition">
-            Sign In to My Tree
-          </button>
-          <button type="button" onclick="handleAuthSubmit('signup')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg border border-slate-300 transition">
-            Sign Up (Create New Family Tree)
-          </button>
-          <button type="button" id="signOutBtn" onclick="handleSignOut()" class="w-full py-2 text-red-600 hover:underline font-semibold hidden">
-            Sign Out of this Account
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Full Details Inspection Modal -->
-  <div id="detailsModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
-      <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
-        <div>
-          <h2 id="detailCardTitle" class="text-base font-bold">Relative Full Profile</h2>
-          <p class="text-xs text-slate-400">Complete heritage, gotra, vitals, and family connections.</p>
-        </div>
-        <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        <button onclick="window.closeDetailsModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
       </div>
 
       <div class="p-6 space-y-4 text-xs overflow-y-auto max-h-[75vh]">
-        <!-- Personal Vitals -->
         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
           <div class="flex items-center justify-between">
             <h3 id="detailName" class="text-base font-black text-slate-900"></h3>
@@ -283,74 +368,52 @@
           <div class="pt-1"><span class="font-bold text-slate-900">Address:</span> <span id="detailAddress">-</span></div>
         </div>
 
-        <!-- Linked Relatives Badges -->
         <div class="space-y-3">
-          <div>
-            <h4 class="font-bold text-slate-800 uppercase text-[10px] mb-1">Parents</h4>
-            <div id="detailParents" class="flex flex-wrap gap-1.5 text-slate-600">None</div>
-          </div>
-          <div>
-            <h4 class="font-bold text-slate-800 uppercase text-[10px] mb-1">Spouses / Wives</h4>
-            <div id="detailSpouses" class="flex flex-wrap gap-1.5 text-slate-600">None</div>
-          </div>
-          <div>
-            <h4 class="font-bold text-slate-800 uppercase text-[10px] mb-1">Brothers / Sisters / In-Laws</h4>
-            <div id="detailSiblings" class="flex flex-wrap gap-1.5 text-slate-600">None</div>
-          </div>
-          <div>
-            <h4 class="font-bold text-slate-800 uppercase text-[10px] mb-1">Children (Next Generation)</h4>
-            <div id="detailChildren" class="flex flex-wrap gap-1.5 text-slate-600">None</div>
-          </div>
+          <div><h4 class="font-bold text-slate-800 uppercase text-[10px] mb-1">Parents (Prior Gen)</h4><div id="detailParents" class="flex flex-wrap gap-1.5 text-slate-600">None</div></div>
+          <div><h4 class="font-bold text-slate-800 uppercase text-[10px] mb-1">Spouses / Wives</h4><div id="detailSpouses" class="flex flex-wrap gap-1.5 text-slate-600">None</div></div>
+          <div><h4 class="font-bold text-slate-800 uppercase text-[10px] mb-1">Brothers / Sisters / In-Laws</h4><div id="detailSiblings" class="flex flex-wrap gap-1.5 text-slate-600">None</div></div>
+          <div><h4 class="font-bold text-slate-800 uppercase text-[10px] mb-1">Children (Next Gen)</h4><div id="detailChildren" class="flex flex-wrap gap-1.5 text-slate-600">None</div></div>
         </div>
 
         <div class="pt-3 border-t border-slate-200 flex items-center justify-between">
-          <button type="button" id="btnEditFromDetails" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm">
-            ✏️ Edit Details
-          </button>
-          <button type="button" onclick="closeDetailsModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50">
-            Close
-          </button>
+          <button type="button" id="btnEditFromDetails" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow">✏️ Edit Details</button>
+          <button type="button" onclick="window.closeDetailsModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 font-semibold hover:bg-slate-50">Close</button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Add / Edit Member Modal Dialog -->
-  <div id="memberModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+  <div id="memberModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 flex flex-col">
       <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
         <div>
           <h2 id="modalTitle" class="text-base font-bold tracking-tight">Add Family Relative</h2>
           <p class="text-xs text-slate-400">Preserve lineage, Gotra, and relations in the register.</p>
         </div>
-        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        <button onclick="window.closeModal()" class="text-slate-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
       </div>
 
-      <form id="memberForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4 text-xs overflow-y-auto max-h-[75vh]">
+      <form id="memberForm" onsubmit="window.handleFormSubmit(event)" class="p-6 space-y-4 text-xs overflow-y-auto max-h-[75vh]">
         <input type="hidden" id="memberId" />
 
-        <!-- Mandatory Information Section -->
         <div class="space-y-3 pb-3 border-b border-slate-200">
           <div>
-            <label class="block font-bold text-slate-800 mb-1">
-              Full Name <span class="text-red-500">*</span>
-            </label>
-            <input type="text" id="memberName" required placeholder="e.g. Ramesh Chandra Patel"
-              class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <label class="block font-bold text-slate-800 mb-1">Full Name <span class="text-red-500">*</span></label>
+            <input type="text" id="memberName" required placeholder="e.g. Ramesh Patel"
+              class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block font-bold text-slate-800 mb-1">
-                Relationship with Root <span class="text-red-500">*</span>
-              </label>
-              <input type="text" id="memberRelToRoot" required placeholder="e.g. 1st Wife, 2nd Wife, Wife's Brother, Son"
-                class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <label class="block font-bold text-slate-800 mb-1">Relationship with Root <span class="text-red-500">*</span></label>
+              <input type="text" id="memberRelToRoot" required placeholder="e.g. Father, Mother, 1st Wife, Son"
+                class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
             </div>
 
             <div>
               <label class="block font-bold text-slate-800 mb-1">Gender</label>
-              <select id="memberGender" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <select id="memberGender" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
@@ -358,11 +421,10 @@
           </div>
         </div>
 
-        <!-- Lineage Origin, Living Status & Marital Status -->
         <div class="grid grid-cols-3 gap-2.5">
           <div>
             <label class="block font-bold text-slate-800 mb-1">Lineage Side</label>
-            <select id="memberBranch" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-semibold text-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <select id="memberBranch" class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold text-indigo-700">
               <option value="paternal">🧔 Main / Husband</option>
               <option value="maternal">👩 Wife / In-Laws</option>
             </select>
@@ -370,7 +432,7 @@
 
           <div>
             <label class="block font-bold text-slate-800 mb-1">Living Status</label>
-            <select id="memberStatus" onchange="toggleDeceasedFields()" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <select id="memberStatus" onchange="window.toggleDeceasedFields()" class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold text-slate-800">
               <option value="alive">🌱 Living</option>
               <option value="deceased">🕊️ Deceased</option>
             </select>
@@ -378,62 +440,51 @@
 
           <div>
             <label class="block font-bold text-slate-800 mb-1">Marital Status</label>
-            <select id="memberMarital" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-semibold text-rose-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <select id="memberMarital" class="w-full px-2.5 py-2.5 border border-slate-300 rounded-xl bg-white font-semibold text-rose-700">
               <option value="married">💍 Married</option>
               <option value="unmarried">Unmarried (Single)</option>
             </select>
           </div>
         </div>
 
-        <!-- Dates & Age (Supports Automatic OR Manual Entry) -->
         <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Date of Birth</label>
-            <input type="date" id="memberDob" onchange="autoCalculateAge()"
-              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <input type="date" id="memberDob" onchange="window.autoCalculateAge()" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-slate-900" />
           </div>
           <div>
-            <label class="block font-semibold text-slate-700 mb-1" id="lblAge">Age (or Manual Age)</label>
-            <input type="number" id="memberAge" placeholder="Manual age if DOB unknown"
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <label class="block font-semibold text-slate-700 mb-1" id="lblAge">Age (or Manual)</label>
+            <input type="number" id="memberAge" placeholder="Manual age" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 font-semibold" />
           </div>
           <div id="deathDateContainer" class="hidden">
             <label class="block font-semibold text-slate-700 mb-1">Date of Passing</label>
-            <input type="date" id="memberDod" onchange="autoCalculateAge()"
-              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <input type="date" id="memberDod" onchange="window.autoCalculateAge()" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-slate-900" />
           </div>
         </div>
 
-        <!-- Heritage: Gotra, Bansa & Profession -->
         <div class="grid grid-cols-3 gap-2 pt-1">
           <div>
             <label class="block font-bold text-slate-800 mb-1">Gotra</label>
-            <input type="text" id="memberGotra" placeholder="e.g. Kashyap"
-              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <input type="text" id="memberGotra" placeholder="e.g. Kashyap" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-slate-900" />
           </div>
           <div>
             <label class="block font-bold text-slate-800 mb-1">Bansa</label>
-            <input type="text" id="memberBansa" placeholder="e.g. Suryavansh"
-              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <input type="text" id="memberBansa" placeholder="e.g. Suryavansh" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-slate-900" />
           </div>
           <div>
             <label class="block font-bold text-slate-800 mb-1">Profession</label>
-            <input type="text" id="memberProfession" placeholder="e.g. Teacher"
-              class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <input type="text" id="memberProfession" placeholder="e.g. Teacher" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-slate-900" />
           </div>
         </div>
 
-        <!-- Contact Information: Phone & Address -->
         <div class="grid grid-cols-2 gap-3 pt-1">
           <div>
             <label class="block font-bold text-slate-800 mb-1">Phone Number</label>
-            <input type="tel" id="memberPhone" placeholder="e.g. +91 98765 43210"
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <input type="tel" id="memberPhone" placeholder="e.g. +91 98765 43210" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900" />
           </div>
           <div>
             <label class="block font-bold text-slate-800 mb-1">Address / Residence</label>
-            <input type="text" id="memberAddress" placeholder="e.g. Sambalpur, Odisha"
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <input type="text" id="memberAddress" placeholder="e.g. Sambalpur, Odisha" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-900" />
           </div>
         </div>
 
@@ -443,56 +494,44 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-slate-600 mb-1">Select Relative</label>
-              <select id="linkTargetNode" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
+              <select id="linkTargetNode" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium"></select>
             </div>
             <div>
               <label class="block text-slate-600 mb-1">This Person Is Their:</label>
-              <select id="linkRelationType" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                <option value="child">Child (Next Generation: Son / Daughter)</option>
-                <option value="spouse">Spouse / Wife (Supports Multiple Wives)</option>
-                <option value="sibling">Sibling (Brother / Sister / Wife's Sibling)</option>
-                <option value="parent">Parent (Prior Generation: Father / Mother)</option>
+              <select id="linkRelationType" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-white text-slate-900 font-medium">
+                <option value="parent">Parent / Father / Mother (Old Generation ⬆️)</option>
+                <option value="child">Child / Son / Daughter (Next Generation ⬇️)</option>
+                <option value="spouse">Spouse / Wife / Husband (Horizontal 💍)</option>
+                <option value="sibling">Sibling / Brother / Sister (Horizontal 👥)</option>
               </select>
             </div>
           </div>
-          <p class="text-[10px] text-slate-500 italic">
-            * Unlimited multi-generational connections supported: choose <b>Child</b>, <b>Spouse</b>, <b>Sibling</b>, or <b>Parent</b>.
-          </p>
         </div>
 
-        <!-- Node Specific Actions: Single PDF & Individual Share -->
         <div id="nodeSpecificActions" class="pt-3 border-t border-slate-200 hidden justify-between items-center">
-          <button type="button" onclick="exportSinglePersonPDF()" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold border border-indigo-200 flex items-center gap-1">
+          <button type="button" onclick="window.exportSinglePersonPDF()" class="px-2.5 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold border border-indigo-200 flex items-center gap-1">
             📄 Single Person PDF
           </button>
-          <button type="button" onclick="openShareSheetForActiveNode()" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold border border-emerald-200 flex items-center gap-1">
+          <button type="button" onclick="window.openShareSheetForActiveNode()" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold border border-emerald-200 flex items-center gap-1">
             📤 Share Node Options
           </button>
         </div>
 
-        <!-- Modal Footer: Delete & Submit Actions -->
         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
-          <div>
-            <button type="button" id="btnDelete" onclick="deleteCurrentNode()"
-              class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg font-bold text-xs transition flex items-center gap-1">
-              🗑️ Delete Member
-            </button>
-          </div>
+          <button type="button" id="btnDelete" onclick="window.deleteCurrentNode()"
+            class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl font-bold text-xs">
+            🗑️ Delete Member
+          </button>
 
           <div class="flex items-center space-x-2.5 ml-auto">
-            <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition">
-              Cancel
-            </button>
-            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md transition">
-              Save Member
-            </button>
+            <button type="button" onclick="window.closeModal()" class="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 font-semibold">Cancel</button>
+            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md">Save Member</button>
           </div>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- A4 Printable Table Container (Window.print) -->
   <div id="printableArea" class="hidden p-8 bg-white text-slate-900">
     <div class="text-center mb-6 pb-4 border-b border-slate-300">
       <h1 class="text-2xl font-extrabold text-slate-900">Vanshavali Family Heritage Register</h1>
@@ -501,104 +540,73 @@
     <table class="w-full text-left border-collapse border border-slate-300 text-xs">
       <thead>
         <tr class="bg-slate-100 text-slate-800 font-bold">
-          <th class="border border-slate-300 p-2.5">Full Name</th>
-          <th class="border border-slate-300 p-2.5">Rel. to Root</th>
-          <th class="border border-slate-300 p-2.5">Branch</th>
-          <th class="border border-slate-300 p-2.5">Marital Status</th>
-          <th class="border border-slate-300 p-2.5">Status</th>
-          <th class="border border-slate-300 p-2.5">Gotra</th>
-          <th class="border border-slate-300 p-2.5">Bansa</th>
-          <th class="border border-slate-300 p-2.5">Age / Dates</th>
-          <th class="border border-slate-300 p-2.5">Profession</th>
-          <th class="border border-slate-300 p-2.5">Phone & Address</th>
+          <th class="border border-slate-300 p-2">Full Name</th>
+          <th class="border border-slate-300 p-2">Rel. to Root</th>
+          <th class="border border-slate-300 p-2">Branch</th>
+          <th class="border border-slate-300 p-2">Marital</th>
+          <th class="border border-slate-300 p-2">Status</th>
+          <th class="border border-slate-300 p-2">Gotra</th>
+          <th class="border border-slate-300 p-2">Bansa</th>
+          <th class="border border-slate-300 p-2">Age / Dates</th>
+          <th class="border border-slate-300 p-2">Profession</th>
+          <th class="border border-slate-300 p-2">Phone & Address</th>
         </tr>
       </thead>
       <tbody id="printTableBody"></tbody>
     </table>
   </div>
 
-  <!-- HARDCODED FIREBASE REALTIME DATABASE MODULE WITH MULTI-TENANT ACCOUNTS -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-    // =========================================================================
-    // PASTE YOUR REAL FIREBASE CONFIGURATION HERE
-    // =========================================================================
-    const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyYOUR_ACTUAL_API_KEY_HERE",
-      authDomain: "your-project-id.firebaseapp.com",
-      databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
-      projectId: "your-project-id",
-      storageBucket: "your-project-id.appspot.com",
-      messagingSenderId: "1234567890",
-      appId: "1:1234567890:web:abcdef123456"
-    };
-    // =========================================================================
-
-    let firebaseDb = null;
-    let treeRef = null;
-
-    function initFirebase() {
-      if (FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes("YOUR_ACTUAL_API_KEY")) {
-        try {
-          const app = initializeApp(FIREBASE_CONFIG);
-          firebaseDb = getDatabase(app);
-          attachFirebaseTreeListener();
-          setSyncStatus(true);
-        } catch (err) {
-          console.error("Firebase connection error:", err);
-          setSyncStatus(false);
-        }
-      } else {
-        setSyncStatus(false);
-      }
-    }
-
-    window.attachFirebaseTreeListener = function() {
-      if (!firebaseDb) return;
-      const activeRoom = window.getCurrentRoomId();
-      treeRef = ref(firebaseDb, "trees/" + activeRoom);
-
-      onValue(treeRef, (snapshot) => {
-        const val = snapshot.val();
-        if (val && Array.isArray(val.nodes)) {
-          window.updateTreeFromCloud(val);
-          setSyncStatus(true);
-        }
-      });
-    };
-
-    function setSyncStatus(isOnline) {
-      const badge = document.getElementById("syncBadge");
-      if (isOnline) {
-        badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1";
-        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Live Cloud Sync`;
-      } else {
-        badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1";
-        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Local Offline Mode`;
-      }
-    }
-
-    window.syncToFirebase = function(data) {
-      if (firebaseDb && treeRef) {
-        set(treeRef, {
-          nodes: data.nodes,
-          links: data.links,
-          lastUpdated: Date.now()
-        }).catch(err => console.error("Firebase push error:", err));
-      }
-    };
-
-    window.addEventListener("DOMContentLoaded", initFirebase);
-  </script>
-
-  <!-- Core Application Script -->
   <script>
-    const USER_ACCOUNT_KEY = "vanshavali_active_account_v5";
-    const REGISTERED_ACCOUNTS_KEY = "vanshavali_registered_accounts_v5";
+    const USER_ACCOUNT_KEY = "vanshavali_active_account_v15";
+    const REGISTERED_ACCOUNTS_KEY = "vanshavali_registered_accounts_v15";
 
-    let state = {
+    // Modern in-app notification replacing alerts
+    window.showToast = function(message, type = "info") {
+      const container = document.getElementById("toastContainer");
+      if (!container) return;
+
+      const toast = document.createElement("div");
+      const bg = type === "error" ? "bg-rose-600 text-white" : (type === "success" ? "bg-emerald-600 text-white" : "bg-slate-900 text-white border border-slate-700");
+      toast.className = `${bg} px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 pointer-events-auto animate-in slide-in-from-top-2 duration-200`;
+      toast.innerHTML = `<span>${type === "error" ? "❌" : (type === "success" ? "✅" : "ℹ️")}</span> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "transition-opacity", "duration-300");
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    };
+
+    // Modern in-app confirmation modal replacing window.confirm
+    window.askConfirm = function(title, message, onConfirm) {
+      const modal = document.getElementById("confirmModal");
+      const titleEl = document.getElementById("confirmTitle");
+      const msgEl = document.getElementById("confirmMessage");
+      const okBtn = document.getElementById("confirmOkBtn");
+      const cancelBtn = document.getElementById("confirmCancelBtn");
+
+      if (!modal) return;
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+
+      const cleanup = () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      okBtn.onclick = () => {
+        cleanup();
+        if (typeof onConfirm === "function") onConfirm();
+      };
+
+      cancelBtn.onclick = cleanup;
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    };
+
+    window.state = {
       nodes: [],
       links: [],
       pan: { x: 80, y: 120 },
@@ -610,26 +618,20 @@
       spotlightNodeId: null
     };
 
-    // Uniform dimensions for all node cards across the graph
     const CARD_WIDTH = 230;
     const CARD_HEIGHT = 180;
-
     let currentSharingNodeId = null;
 
-    // Default Multi-Spouse & In-Laws Heritage Structure with Marital Status
+    // Default Seed Lineage
     const defaultData = {
       nodes: [
         { id: "node_1", branch: "paternal", name: "Prithviraj Patel", relationship_to_root: "Great-Grandfather", gender: "male", marital_status: "married", status: "deceased", dod: "1982-11-20", gotra: "Kashyap", bansa: "Suryavansh", age: 84, profession: "Landowner", phone: "", address: "Barpali", x: 260, y: 40 },
         { id: "node_2", branch: "paternal", name: "Dinanath Patel", relationship_to_root: "Grandfather", gender: "male", marital_status: "married", status: "deceased", dod: "2010-04-15", gotra: "Kashyap", bansa: "Suryavansh", age: 78, profession: "Teacher", phone: "", address: "Bargarh", x: 260, y: 260 },
         { id: "node_3", branch: "paternal", name: "Suresh Patel", relationship_to_root: "Father", gender: "male", marital_status: "married", status: "alive", gotra: "Kashyap", bansa: "Suryavansh", age: 56, profession: "Business", phone: "+91 94370 00000", address: "Sambalpur", x: 260, y: 480 },
         { id: "node_4", branch: "paternal", name: "Husband / Self", relationship_to_root: "Root (Self)", gender: "male", marital_status: "married", status: "alive", gotra: "Kashyap", bansa: "Suryavansh", age: 28, profession: "Engineer", phone: "+91 98610 00000", address: "Bhubaneswar", x: 260, y: 700 },
-        
-        // 1st Wife & Her Lineage
         { id: "node_5", branch: "maternal", name: "1st Wife", relationship_to_root: "1st Wife", gender: "female", marital_status: "married", status: "alive", gotra: "Bharadwaj", bansa: "Chandravansh", age: 27, profession: "Educator", phone: "+91 98610 11111", address: "Bhubaneswar", x: 570, y: 700 },
         { id: "node_6", branch: "maternal", name: "1st Wife's Brother", relationship_to_root: "Wife's Brother", gender: "male", marital_status: "unmarried", status: "alive", gotra: "Bharadwaj", bansa: "Chandravansh", age: 30, profession: "Architect", phone: "+91 98610 22222", address: "Rourkela", x: 880, y: 700 },
         { id: "node_7", branch: "maternal", name: "Father-in-Law (1st Wife)", relationship_to_root: "Father-in-Law", gender: "male", marital_status: "married", status: "alive", gotra: "Bharadwaj", bansa: "Chandravansh", age: 59, profession: "Officer", phone: "+91 94371 33333", address: "Cuttack", x: 720, y: 480 },
-        
-        // 2nd Wife
         { id: "node_8", branch: "maternal", name: "2nd Wife", relationship_to_root: "2nd Wife", gender: "female", marital_status: "married", status: "alive", gotra: "Sandilya", bansa: "Nagavansh", age: 25, profession: "Doctor", phone: "+91 98610 44444", address: "Jharsuguda", x: -40, y: 700 }
       ],
       links: [
@@ -644,7 +646,6 @@
       ]
     };
 
-    // --- Authentication & Room Resolution ---
     window.getCurrentRoomId = function() {
       const urlParams = new URLSearchParams(window.location.search);
       const sharedRoom = urlParams.get("room");
@@ -652,251 +653,335 @@
 
       const activeUser = JSON.parse(localStorage.getItem(USER_ACCOUNT_KEY) || "null");
       if (activeUser && activeUser.email) {
-        const safeKey = activeUser.email.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-        return "room_" + safeKey;
+        return "room_" + activeUser.email.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
       }
       return "family_heritage_tree_root";
     };
 
-    function updateAuthHeaderUI() {
-      const activeUser = JSON.parse(localStorage.getItem(USER_ACCOUNT_KEY) || "null");
-      const urlParams = new URLSearchParams(window.location.search);
-      const isSharedView = !!urlParams.get("room");
-
-      if (isSharedView) {
-        document.getElementById("authBtnLabel").textContent = "Shared Tree (Direct)";
-        document.getElementById("authNotice").innerHTML = `
-          You are viewing a <b>shared family tree</b> via direct link. You can add and view relatives directly.<br/><br/>
-          Want to start your own separate family tree? Sign up below:
-        `;
-      } else if (activeUser) {
-        document.getElementById("authBtnLabel").textContent = activeUser.email.split('@')[0];
-        document.getElementById("authNotice").innerHTML = `Logged in as <b>${escapeHtml(activeUser.email)}</b>. All changes save to your personal tree.`;
-        document.getElementById("signOutBtn").classList.remove("hidden");
-      } else {
-        document.getElementById("authBtnLabel").textContent = "Sign In / Join";
-        document.getElementById("authNotice").textContent = "Sign up with your email to create your own family tree, or sign in to load your personal lineage.";
-        document.getElementById("signOutBtn").classList.add("hidden");
-      }
-    }
-
-    function openAuthModal() {
-      document.getElementById("authModal").classList.remove("hidden");
-      document.getElementById("authModal").classList.add("flex");
-    }
-    function closeAuthModal() {
-      document.getElementById("authModal").classList.add("hidden");
-      document.getElementById("authModal").classList.remove("flex");
-    }
-
-    function handleAuthSubmit(type) {
-      const email = document.getElementById("authEmail").value.trim().toLowerCase();
-      const pin = document.getElementById("authPassword").value.trim();
-
-      if (!email || !pin) {
-        alert("Please enter both email ID and password/PIN.");
-        return;
-      }
-
-      if (!email.includes("@") || !email.includes(".")) {
-        alert("Please enter a valid email ID.");
-        return;
-      }
-
-      let accounts = JSON.parse(localStorage.getItem(REGISTERED_ACCOUNTS_KEY) || "{}");
-
-      if (type === "signup") {
-        if (accounts[email]) {
-          alert("This email is already registered. Please sign in or use another email.");
-          return;
-        }
-        accounts[email] = { pin: pin, created: Date.now() };
-        localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(accounts));
-        localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({ email: email }));
-        alert(`Account created successfully! Your personal family tree is now active.`);
-        window.location.href = window.location.origin + window.location.pathname;
-      } else {
-        if (!accounts[email] || accounts[email].pin !== pin) {
-          alert("Invalid email ID or password/PIN.");
-          return;
-        }
-        localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({ email: email }));
-        window.location.href = window.location.origin + window.location.pathname;
-      }
-    }
-
-    function handleSignOut() {
-      localStorage.removeItem(USER_ACCOUNT_KEY);
-      alert("Signed out successfully.");
-      window.location.href = window.location.origin + window.location.pathname;
-    }
-
-    // --- Multi-Channel Node Share Logic ---
-    function openShareSheet(nodeId) {
-      currentSharingNodeId = nodeId;
-      const node = state.nodes.find(n => n.id === nodeId);
-      if (!node) return;
-
-      document.getElementById("shareSheetSubtitle").textContent = `Invite relatives to view/add records for ${node.name}`;
-      
-      const currentRoom = window.getCurrentRoomId();
-      const payload = JSON.stringify({ nodes: state.nodes, links: state.links });
-      const encoded = btoa(unescape(encodeURIComponent(payload)));
-      const shareUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoom}&focusNode=${node.id}#${encoded}`;
-
-      document.getElementById("shareSheetUrlInput").value = shareUrl;
-      document.getElementById("shareSheetModal").classList.remove("hidden");
-      document.getElementById("shareSheetModal").classList.add("flex");
-    }
-
-    function openShareSheetForActiveNode() {
-      const id = document.getElementById("memberId").value;
-      if (id) {
-        closeModal();
-        openShareSheet(id);
-      }
-    }
-
-    function closeShareSheetModal() {
-      document.getElementById("shareSheetModal").classList.add("hidden");
-      document.getElementById("shareSheetModal").classList.remove("flex");
-    }
-
-    function getNodeShareUrl() {
-      return document.getElementById("shareSheetUrlInput").value;
-    }
-
-    function shareViaWhatsApp() {
-      const node = state.nodes.find(n => n.id === currentSharingNodeId);
-      const name = node ? node.name : "our relative";
-      const url = getNodeShareUrl();
-      const text = encodeURIComponent(`Namaskar! Please view and add your family branch/details for ${name} on our Vanshavali Family Tree:\n\n${url}`);
-      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-    }
-
-    function shareViaEmail() {
-      const node = state.nodes.find(n => n.id === currentSharingNodeId);
-      const name = node ? node.name : "our family";
-      const url = getNodeShareUrl();
-      const subject = encodeURIComponent(`Invitation to join Vanshavali Family Tree - ${name}`);
-      const body = encodeURIComponent(`Hello,\n\nYou are invited to view and add your family lineage details to our Vanshavali Family Tree for ${name}.\n\nClick the link below to open directly and add your details:\n${url}\n\nWarm regards,\nVanshavali Heritage Register`);
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    }
-
-    function shareViaDeviceNative() {
-      const node = state.nodes.find(n => n.id === currentSharingNodeId);
-      const name = node ? node.name : "Relative";
-      const url = getNodeShareUrl();
-
-      if (navigator.share) {
-        navigator.share({
-          title: `Vanshavali Family Tree - ${name}`,
-          text: `View and add your family branch/details for ${name} on our Vanshavali Heritage Tree:`,
-          url: url
-        }).catch(() => {});
-      } else {
-        copyShareSheetLink();
-      }
-    }
-
-    function copyShareSheetLink() {
-      const copyText = document.getElementById("shareSheetUrlInput");
-      copyText.select();
-      copyText.setSelectionRange(0, 99999);
-      navigator.clipboard.writeText(copyText.value);
-      alert("Direct Node Link copied to clipboard!\n\nYou can now paste it into WhatsApp, Email, or SMS.");
-    }
-
-    // --- Init & Storage Sync ---
-    function init() {
-      updateAuthHeaderUI();
-      const currentRoom = window.getCurrentRoomId();
-      const storageKey = "vanshavali_tree_data_" + currentRoom;
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const focusTarget = urlParams.get("focusNode");
-
-      if (window.location.hash && window.location.hash.length > 20) {
-        try {
-          const rawHash = window.location.hash.substring(1);
-          const decoded = JSON.parse(decodeURIComponent(escape(atob(rawHash))));
-          if (Array.isArray(decoded.nodes)) {
-            state.nodes = decoded.nodes;
-            state.links = decoded.links || [];
-            localStorage.setItem(storageKey, JSON.stringify({ nodes: state.nodes, links: state.links }));
-          }
-        } catch (e) {
-          console.error("URL hash error:", e);
-        }
-      }
-
-      if (state.nodes.length === 0) {
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            state.nodes = parsed.nodes || [];
-            state.links = parsed.links || [];
-          } catch(e) {
-            state.nodes = defaultData.nodes;
-            state.links = defaultData.links;
-          }
-        } else {
-          state.nodes = defaultData.nodes;
-          state.links = defaultData.links;
-        }
-      }
-
-      if (focusTarget) {
-        state.spotlightNodeId = focusTarget;
-      }
-
-      render();
-      attachCanvasEvents();
-
-      if (focusTarget) {
-        setTimeout(() => focusOnNode(focusTarget, true), 300);
-      }
-    }
-
-    function saveState() {
-      const currentRoom = window.getCurrentRoomId();
-      const storageKey = "vanshavali_tree_data_" + currentRoom;
-      localStorage.setItem(storageKey, JSON.stringify({ nodes: state.nodes, links: state.links }));
-      if (typeof window.syncToFirebase === "function") {
-        window.syncToFirebase({ nodes: state.nodes, links: state.links });
-      }
-    }
-
-    window.updateTreeFromCloud = function(cloudData) {
-      state.nodes = cloudData.nodes || [];
-      state.links = cloudData.links || [];
-      const currentRoom = window.getCurrentRoomId();
-      const storageKey = "vanshavali_tree_data_" + currentRoom;
-      localStorage.setItem(storageKey, JSON.stringify({ nodes: state.nodes, links: state.links }));
-      render();
+    const firebaseConfig = {
+      apiKey: "AIzaSyBbi1Bh5bOScSNX5Hf9UcYTo_6C_7EtCiQ",
+      authDomain: "vanshavali-heritage-tree.firebaseapp.com",
+      databaseURL: "https://vanshavali-heritage-tree-default-rtdb.firebaseio.com",
+      projectId: "vanshavali-heritage-tree",
+      storageBucket: "vanshavali-heritage-tree.firebasestorage.app",
+      messagingSenderId: "188938879243",
+      appId: "1:188938879243:web:0a57d909f4267fa369220e"
     };
 
-    function filterBranchView(branchKey) {
-      state.activeBranch = branchKey;
-      render();
+    let firebaseDb = null;
+    let treeRef = null;
+    let isCloudConnected = false;
+    let lastCloudSyncTime = null;
+
+    try {
+      if (window.firebase && !firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+        firebaseDb = firebase.database();
+      }
+    } catch (e) {
+      console.warn("Firebase initialization notice:", e);
     }
 
-    function isNodeVisibleInActiveBranch(node) {
-      if (state.activeBranch === "all") return true;
-      if (!node.branch) return state.activeBranch === "paternal";
-      return node.branch === state.activeBranch;
-    }
+    window.attachFirebaseListener = function() {
+      if (!firebaseDb) {
+        window.updateSyncBadge("offline", "Local Mode");
+        return;
+      }
 
-    // Unlimited recursive descendant and sub-branch discovery with cycle prevention
-    function getAllDescendantIds(parentId) {
+      try {
+        firebaseDb.ref(".info/connected").on("value", (snap) => {
+          isCloudConnected = snap.val() === true;
+          if (isCloudConnected) {
+            window.updateSyncBadge("connected", "Live Cloud Sync");
+          } else {
+            window.updateSyncBadge("connecting", "Connecting Cloud...");
+          }
+        });
+
+        const activeRoom = window.getCurrentRoomId();
+        if (treeRef) treeRef.off();
+        treeRef = firebaseDb.ref("trees/" + activeRoom);
+
+        treeRef.on("value", (snapshot) => {
+          const val = snapshot.val();
+          lastCloudSyncTime = new Date().toLocaleTimeString();
+          if (val && Array.isArray(val.nodes) && val.nodes.length > 0) {
+            window.updateTreeFromCloud(val);
+          }
+          window.updateSyncBadge("connected", "Live Cloud Sync");
+        }, (error) => {
+          console.warn("Firebase read notice:", error);
+          window.updateSyncBadge("offline", "Local Mode");
+        });
+      } catch (err) {
+        console.warn("Realtime listener notice:", err);
+        window.updateSyncBadge("offline", "Local Mode");
+      }
+    };
+
+    window.updateSyncBadge = function(status, label) {
+      const badge = document.getElementById("syncBadge");
+      if (!badge) return;
+      if (status === "connected") {
+        badge.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition hover:brightness-110 cursor-pointer";
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ${label}`;
+      } else if (status === "connecting") {
+        badge.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 transition hover:brightness-110 cursor-pointer";
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> ${label}`;
+      } else {
+        badge.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-700 text-slate-300 border border-slate-600 flex items-center gap-1.5 transition hover:brightness-110 cursor-pointer";
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> ${label}`;
+      }
+    };
+
+    window.openCloudDiagnosticModal = function() {
+      const modal = document.getElementById("cloudModal");
+      if (!modal) return;
+      const sock = document.getElementById("diagSocketStatus");
+      const room = document.getElementById("diagRoomId");
+      const last = document.getElementById("diagLastSync");
+
+      if (sock) sock.textContent = isCloudConnected ? "✅ Connected to Cloud" : "⏳ Connecting / Offline";
+      if (sock) sock.className = isCloudConnected ? "font-bold text-emerald-600" : "font-bold text-amber-600";
+      if (room) room.textContent = window.getCurrentRoomId();
+      if (last) last.textContent = lastCloudSyncTime || "Not synced yet";
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    };
+
+    window.closeCloudDiagnosticModal = function() {
+      const modal = document.getElementById("cloudModal");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+    };
+
+    window.testCloudWrite = function() {
+      window.syncToFirebase({ nodes: window.state.nodes, links: window.state.links });
+      lastCloudSyncTime = new Date().toLocaleTimeString();
+      const last = document.getElementById("diagLastSync");
+      if (last) last.textContent = lastCloudSyncTime + " (Manual test)";
+      window.showToast("Test payload pushed to Firebase!", "success");
+      window.closeCloudDiagnosticModal();
+    };
+
+    window.syncToFirebase = function(data) {
+      if (firebaseDb && treeRef) {
+        treeRef.set({
+          nodes: data.nodes,
+          links: data.links,
+          lastUpdated: Date.now()
+        }).then(() => {
+          lastCloudSyncTime = new Date().toLocaleTimeString();
+        }).catch(err => {
+          console.warn("Firebase push notice:", err);
+        });
+      }
+    };
+
+    window.handleGoogleUserSuccess = function(user) {
+      if (!user) return;
+      const userEmail = (user.email || "").toLowerCase();
+      const displayName = user.displayName || (userEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+
+      const accounts = JSON.parse(localStorage.getItem(REGISTERED_ACCOUNTS_KEY) || "{}");
+      if (!accounts[userEmail]) {
+        window.bootstrapUserTree(userEmail, displayName);
+      } else {
+        const existingAccount = accounts[userEmail];
+        localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({
+          email: userEmail,
+          verifiedName: existingAccount.verifiedName || displayName,
+          nodeId: existingAccount.nodeId
+        }));
+
+        const gateway = document.getElementById("authGatewayScreen");
+        if (gateway) gateway.classList.add("hidden");
+
+        const btnLabel = document.getElementById("authBtnLabel");
+        if (btnLabel) btnLabel.textContent = (existingAccount.verifiedName || displayName).split(' ')[0];
+
+        window.attachFirebaseListener();
+        window.loadLocalOrCloudData();
+        window.showToast(`Welcome back, ${existingAccount.verifiedName || displayName}!`, "success");
+      }
+    };
+
+    window.signInWithGoogleAccount = function() {
+      if (!window.firebase || !firebase.auth) {
+        window.skipGatewayForPreview();
+        return;
+      }
+
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+          if (result && result.user) {
+            window.handleGoogleUserSuccess(result.user);
+          }
+        })
+        .catch((error) => {
+          console.warn("Google sign-in fallback:", error.message);
+          window.skipGatewayForPreview();
+        });
+    };
+
+    window.skipGatewayForPreview = function() {
+      const activeUser = { email: "preview_guest@heritage.org", verifiedName: "Husband / Self", nodeId: "node_4" };
+      localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(activeUser));
+      document.getElementById("authGatewayScreen").classList.add("hidden");
+      const btnLabel = document.getElementById("authBtnLabel");
+      if (btnLabel) btnLabel.textContent = "Guest";
+      window.render();
+      window.showToast("Logged in as Guest for Demo preview.");
+    };
+
+    window.bootstrapUserTree = function(userEmail, displayName) {
+      const safeKey = userEmail.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+      const newRoom = "room_" + safeKey;
+      const tNow = Date.now();
+      const n1Id = "node_ggf_" + tNow;
+      const n2Id = "node_gf_" + (tNow + 1);
+      const n3Id = "node_f_" + (tNow + 2);
+      const n4Id = "node_self_" + (tNow + 3);
+
+      const setupNodes = [
+        { id: n1Id, branch: "paternal", name: "Great-Grandfather", relationship_to_root: "Great-Grandfather", gender: "male", marital_status: "married", status: "deceased", dod: "", gotra: "", bansa: "", age: null, profession: "", phone: "", address: "", x: 260, y: 40 },
+        { id: n2Id, branch: "paternal", name: "Grandfather", relationship_to_root: "Grandfather", gender: "male", marital_status: "married", status: "deceased", dod: "", gotra: "", bansa: "", age: null, profession: "", phone: "", address: "", x: 260, y: 260 },
+        { id: n3Id, branch: "paternal", name: "Father", relationship_to_root: "Father", gender: "male", marital_status: "married", status: "alive", gotra: "", bansa: "", age: null, profession: "", phone: "", address: "", x: 260, y: 480 },
+        { id: n4Id, branch: "paternal", name: displayName, relationship_to_root: "Root (Self)", gender: "male", marital_status: "married", status: "alive", gotra: "", bansa: "", age: null, profession: "", phone: "", address: "", x: 260, y: 700 }
+      ];
+
+      const setupLinks = [
+        { id: "l_setup_1", source: n1Id, target: n2Id, type: "parent" },
+        { id: "l_setup_2", source: n2Id, target: n3Id, type: "parent" },
+        { id: "l_setup_3", source: n3Id, target: n4Id, type: "parent" }
+      ];
+
+      const initialTree = { nodes: setupNodes, links: setupLinks };
+      localStorage.setItem("vanshavali_tree_data_" + newRoom, JSON.stringify(initialTree));
+
+      const accounts = JSON.parse(localStorage.getItem(REGISTERED_ACCOUNTS_KEY) || "{}");
+      accounts[userEmail] = { pin: "google_oauth", verifiedName: displayName, nodeId: n4Id };
+      localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(accounts));
+      localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({ email: userEmail, verifiedName: displayName, nodeId: n4Id }));
+
+      window.state.nodes = setupNodes;
+      window.state.links = setupLinks;
+      window.saveState();
+      window.attachFirebaseListener();
+      window.render();
+
+      document.getElementById("authGatewayScreen").classList.add("hidden");
+      const btnLabel = document.getElementById("authBtnLabel");
+      if (btnLabel) btnLabel.textContent = displayName.split(' ')[0];
+
+      window.focusOnNode(n4Id, false);
+      window.showToast(`Heritage Tree initialized with 3 ancestor generations for ${displayName}!`, "success");
+    };
+
+    window.verifyAndSignIn = function() {
+      const enteredName = document.getElementById("gateFullName").value.trim();
+      const enteredEmail = document.getElementById("gateEmail").value.trim().toLowerCase();
+      const enteredPin = document.getElementById("gatePin").value.trim();
+
+      if (!enteredName || !enteredEmail || !enteredPin) {
+        window.showToast("Please enter Full Name, Email, and Passcode.", "error");
+        return;
+      }
+
+      const nameMatchedNode = window.state.nodes.find(n => n.name.trim().toLowerCase() === enteredName.toLowerCase());
+
+      if (!nameMatchedNode) {
+        window.showToast(`"${enteredName}" not found in this register. You can start a new tree.`, "error");
+        return;
+      }
+
+      const accounts = JSON.parse(localStorage.getItem(REGISTERED_ACCOUNTS_KEY) || "{}");
+      accounts[enteredEmail] = { pin: enteredPin, verifiedName: nameMatchedNode.name, nodeId: nameMatchedNode.id };
+      localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(accounts));
+      localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify({ email: enteredEmail, verifiedName: nameMatchedNode.name, nodeId: nameMatchedNode.id }));
+
+      document.getElementById("authGatewayScreen").classList.add("hidden");
+      window.attachFirebaseListener();
+      window.focusOnNode(nameMatchedNode.id, false);
+      window.showToast(`Welcome, ${nameMatchedNode.name}! Verified.`, "success");
+    };
+
+    window.registerNewFamilyTree = function() {
+      const enteredName = document.getElementById("gateFullName").value.trim() || "My Lineage";
+      const enteredEmail = document.getElementById("gateEmail").value.trim().toLowerCase() || "user@heritage.org";
+      window.bootstrapUserTree(enteredEmail, enteredName);
+    };
+
+    window.handleSignOut = function() {
+      window.askConfirm("Sign Out", "Are you sure you want to sign out of this heritage workspace?", () => {
+        localStorage.removeItem(USER_ACCOUNT_KEY);
+        if (window.firebase && firebase.auth) {
+          firebase.auth().signOut().catch(() => {});
+        }
+        document.getElementById("authGatewayScreen").classList.remove("hidden");
+        window.showToast("Signed out successfully.");
+      });
+    };
+
+    window.checkAuthGatewayStatus = function() {
+      const activeUser = JSON.parse(localStorage.getItem(USER_ACCOUNT_KEY) || "null");
+      const gateway = document.getElementById("authGatewayScreen");
+
+      if (activeUser && activeUser.email && activeUser.verifiedName) {
+        gateway.classList.add("hidden");
+        const btnLabel = document.getElementById("authBtnLabel");
+        if (btnLabel) btnLabel.textContent = activeUser.verifiedName.split(' ')[0] || "Sign Out";
+      } else {
+        gateway.classList.remove("hidden");
+      }
+    };
+
+    window.saveState = function() {
+      const currentRoom = window.getCurrentRoomId();
+      const storageKey = "vanshavali_tree_data_" + currentRoom;
+      localStorage.setItem(storageKey, JSON.stringify({ nodes: window.state.nodes, links: window.state.links }));
+      window.syncToFirebase({ nodes: window.state.nodes, links: window.state.links });
+    };
+
+    window.updateTreeFromCloud = function(cloudData) {
+      window.state.nodes = cloudData.nodes || [];
+      window.state.links = cloudData.links || [];
+      const currentRoom = window.getCurrentRoomId();
+      const storageKey = "vanshavali_tree_data_" + currentRoom;
+      localStorage.setItem(storageKey, JSON.stringify({ nodes: window.state.nodes, links: window.state.links }));
+      window.render();
+    };
+
+    window.zoom = function(factor) {
+      window.state.zoom = Math.max(0.2, Math.min(5.0, window.state.zoom * factor));
+      window.updateTransform();
+    };
+    window.resetZoom = function() {
+      window.state.pan = { x: 80, y: 120 };
+      window.state.zoom = 1;
+      window.updateTransform();
+    };
+    window.updateTransform = function() {
+      const group = document.getElementById("viewportGroup");
+      if (group) {
+        group.setAttribute("transform", `translate(${window.state.pan.x}, ${window.state.pan.y}) scale(${window.state.zoom})`);
+      }
+    };
+
+    window.getAllDescendantIds = function(parentId) {
       const descendants = new Set();
       const queue = [parentId];
       const visited = new Set([parentId]);
 
       while (queue.length > 0) {
         const curr = queue.shift();
-        const childLinks = state.links.filter(l => l.source === curr && l.type === "parent");
+        const childLinks = window.state.links.filter(l => l.source === curr && l.type === "parent");
         childLinks.forEach(l => {
           if (!visited.has(l.target)) {
             visited.add(l.target);
@@ -906,140 +991,74 @@
         });
       }
       return descendants;
-    }
+    };
 
-    function toggleCollapseSubtree(nodeId) {
-      if (state.collapsedNodes.has(nodeId)) {
-        state.collapsedNodes.delete(nodeId);
+    window.toggleCollapseSubtree = function(nodeId) {
+      if (window.state.collapsedNodes.has(nodeId)) {
+        window.state.collapsedNodes.delete(nodeId);
       } else {
-        state.collapsedNodes.add(nodeId);
+        window.state.collapsedNodes.add(nodeId);
       }
-      render();
-    }
+      window.render();
+    };
 
-    function isNodeHiddenByAncestorCollapse(nodeId) {
-      for (const collapsedId of state.collapsedNodes) {
-        const descendants = getAllDescendantIds(collapsedId);
+    window.isNodeHiddenByAncestorCollapse = function(nodeId) {
+      for (const collapsedId of window.state.collapsedNodes) {
+        const descendants = window.getAllDescendantIds(collapsedId);
         if (descendants.has(nodeId)) return true;
       }
       return false;
-    }
+    };
 
-    // --- Spotlight Mode Controls ---
-    function clearSpotlight() {
-      state.spotlightNodeId = null;
+    window.clearSpotlight = function() {
+      window.state.spotlightNodeId = null;
       document.getElementById("spotlightBanner").classList.add("hidden");
       document.getElementById("spotlightBanner").classList.remove("flex");
-      render();
-    }
+      window.render();
+    };
 
-    function focusOnNode(nodeId, isSpotlight = false) {
-      const node = state.nodes.find(n => n.id === nodeId);
+    window.focusOnNode = function(nodeId, isSpotlight = false) {
+      const node = window.state.nodes.find(n => n.id === nodeId);
       if (!node) return;
 
-      // Expand any collapsed ancestors so node is guaranteed visible
-      state.collapsedNodes.forEach(cId => {
-        if (getAllDescendantIds(cId).has(nodeId)) {
-          state.collapsedNodes.delete(cId);
+      window.state.collapsedNodes.forEach(cId => {
+        if (window.getAllDescendantIds(cId).has(nodeId)) {
+          window.state.collapsedNodes.delete(cId);
         }
       });
 
       if (isSpotlight) {
-        state.spotlightNodeId = nodeId;
+        window.state.spotlightNodeId = nodeId;
         document.getElementById("spotlightNodeName").textContent = node.name;
         document.getElementById("spotlightBanner").classList.remove("hidden");
         document.getElementById("spotlightBanner").classList.add("flex");
       }
 
-      render();
+      window.render();
 
       const container = document.getElementById("canvasContainer");
+      if (!container) return;
       const cWidth = container.clientWidth;
       const cHeight = container.clientHeight;
 
-      state.zoom = 1.15;
-      state.pan.x = cWidth / 2 - (node.x + CARD_WIDTH / 2) * state.zoom;
-      state.pan.y = Math.max(80, cHeight / 2 - (node.y + CARD_HEIGHT / 2) * state.zoom);
-      updateTransform();
-    }
+      window.state.zoom = 1.15;
+      window.state.pan.x = cWidth / 2 - (node.x + CARD_WIDTH / 2) * window.state.zoom;
+      window.state.pan.y = Math.max(80, cHeight / 2 - (node.y + CARD_HEIGHT / 2) * window.state.zoom);
+      window.updateTransform();
+    };
 
-    function shareTreeLink() {
-      try {
-        const currentRoom = window.getCurrentRoomId();
-        const payload = JSON.stringify({ nodes: state.nodes, links: state.links });
-        const encoded = btoa(unescape(encodeURIComponent(payload)));
-        const shareUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoom}#${encoded}`;
+    window.filterBranchView = function(branchKey) {
+      window.state.activeBranch = branchKey;
+      window.render();
+    };
 
-        if (navigator.share) {
-          navigator.share({
-            title: "Vanshavali Family Heritage Tree",
-            text: "Open our family heritage tree directly to explore and add your relatives:",
-            url: shareUrl
-          }).catch(() => {});
-        } else {
-          navigator.clipboard.writeText(shareUrl);
-          alert("Direct Shared Tree Link copied to clipboard!\n\nWhen family members open this link, they immediately access this tree and can add relatives directly without logging in.");
-        }
-      } catch (err) {
-        alert("Payload exceeds URL size limit. Please export to Excel or JSON.");
-      }
-    }
+    window.isNodeVisibleInActiveBranch = function(node) {
+      if (window.state.activeBranch === "all") return true;
+      if (!node.branch) return window.state.activeBranch === "paternal";
+      return node.branch === window.state.activeBranch;
+    };
 
-    function autoArrangeTree() {
-      if (state.nodes.length === 0) return;
-
-      const incoming = {};
-      state.nodes.forEach(n => incoming[n.id] = 0);
-      state.links.forEach(l => {
-        if (l.type === "parent" && incoming[l.target] !== undefined) {
-          incoming[l.target]++;
-        }
-      });
-
-      let currentLevel = state.nodes.filter(n => incoming[n.id] === 0);
-      if (currentLevel.length === 0) currentLevel = [state.nodes[0]];
-
-      const levels = [];
-      const visited = new Set();
-
-      while (currentLevel.length > 0) {
-        levels.push(currentLevel);
-        currentLevel.forEach(n => visited.add(n.id));
-        const nextLevel = [];
-
-        currentLevel.forEach(parent => {
-          const children = state.links
-            .filter(l => l.source === parent.id && l.type === "parent")
-            .map(l => state.nodes.find(n => n.id === l.target))
-            .filter(n => n && !visited.has(n.id));
-
-          children.forEach(c => {
-            if (!nextLevel.some(x => x.id === c.id)) nextLevel.push(c);
-          });
-        });
-        currentLevel = nextLevel;
-      }
-
-      const unplaced = state.nodes.filter(n => !visited.has(n.id));
-      if (unplaced.length > 0) levels.push(unplaced);
-
-      const hSpacing = CARD_WIDTH + 60;
-      const vSpacing = CARD_HEIGHT + 75;
-
-      levels.forEach((row, rowIndex) => {
-        const totalW = row.length * hSpacing;
-        const startX = Math.max(60, 480 - totalW / 2);
-        row.forEach((node, colIndex) => {
-          node.x = startX + colIndex * hSpacing;
-          node.y = 50 + rowIndex * vSpacing;
-        });
-      });
-
-      saveState();
-      render();
-    }
-
-    function handleSearch(query) {
+    window.handleSearch = function(query) {
       const q = query.trim().toLowerCase();
       const nodeElements = document.querySelectorAll(".node-card");
       if (!q) {
@@ -1047,7 +1066,7 @@
         return;
       }
 
-      state.nodes.forEach((n, idx) => {
+      window.state.nodes.forEach((n, idx) => {
         const el = nodeElements[idx];
         if (!el) return;
         const match = n.name.toLowerCase().includes(q) ||
@@ -1060,48 +1079,48 @@
           (n.profession && n.profession.toLowerCase().includes(q));
         el.style.opacity = match ? "1" : "0.15";
       });
-    }
+    };
 
-    function render() {
-      updateTransform();
-      renderLinks();
-      renderNodes();
-    }
+    window.render = function() {
+      window.updateTransform();
+      window.renderLinks();
+      window.renderNodes();
+    };
 
-    function renderLinks() {
+    window.renderLinks = function() {
       const linksLayer = document.getElementById("linksLayer");
+      if (!linksLayer) return;
       linksLayer.innerHTML = "";
 
-      const spotlightActive = !!state.spotlightNodeId;
+      const spotlightActive = !!window.state.spotlightNodeId;
 
-      state.links.forEach(link => {
-        const s = state.nodes.find(n => n.id === link.source);
-        const t = state.nodes.find(n => n.id === link.target);
+      window.state.links.forEach(link => {
+        const s = window.state.nodes.find(n => n.id === link.source);
+        const t = window.state.nodes.find(n => n.id === link.target);
         if (!s || !t) return;
 
-        if (!isNodeVisibleInActiveBranch(s) || !isNodeVisibleInActiveBranch(t)) return;
-        if (isNodeHiddenByAncestorCollapse(s.id) || isNodeHiddenByAncestorCollapse(t.id)) return;
+        if (!window.isNodeVisibleInActiveBranch(s) || !window.isNodeVisibleInActiveBranch(t)) return;
+        if (window.isNodeHiddenByAncestorCollapse(s.id) || window.isNodeHiddenByAncestorCollapse(t.id)) return;
 
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        
-        const isConnectedToSpotlight = (s.id === state.spotlightNodeId || t.id === state.spotlightNodeId);
-        const linkOpacity = spotlightActive ? (isConnectedToSpotlight ? "1" : "0.18") : "1";
+        const isConnectedToSpotlight = (s.id === window.state.spotlightNodeId || t.id === window.state.spotlightNodeId);
+        const linkOpacity = spotlightActive ? (isConnectedToSpotlight ? "1" : "0.2") : "0.95";
 
         if (link.type === "spouse") {
           const x1 = s.x < t.x ? s.x + CARD_WIDTH : s.x;
           const x2 = s.x < t.x ? t.x : t.x + CARD_WIDTH;
           path.setAttribute("d", `M ${x1} ${s.y + CARD_HEIGHT/2} L ${x2} ${t.y + CARD_HEIGHT/2}`);
-          path.setAttribute("stroke", "#ec4899");
-          path.setAttribute("stroke-width", "2.5");
-          path.setAttribute("stroke-dasharray", "5,5");
+          path.setAttribute("stroke", "#f43f5e");
+          path.setAttribute("stroke-width", "3");
+          path.setAttribute("stroke-dasharray", "6,5");
           path.setAttribute("opacity", linkOpacity);
         } else if (link.type === "sibling") {
           const x1 = s.x < t.x ? s.x + CARD_WIDTH : s.x;
           const x2 = s.x < t.x ? t.x : t.x + CARD_WIDTH;
           path.setAttribute("d", `M ${x1} ${s.y + CARD_HEIGHT/2 + 10} L ${x2} ${t.y + CARD_HEIGHT/2 + 10}`);
-          path.setAttribute("stroke", "#0284c7");
-          path.setAttribute("stroke-width", "2.5");
-          path.setAttribute("stroke-dasharray", "4,3");
+          path.setAttribute("stroke", "#38bdf8");
+          path.setAttribute("stroke-width", "3");
+          path.setAttribute("stroke-dasharray", "5,4");
           path.setAttribute("opacity", linkOpacity);
         } else {
           const x1 = s.x + CARD_WIDTH / 2;
@@ -1110,36 +1129,36 @@
           const y2 = t.y;
           const midY = (y1 + y2) / 2;
           path.setAttribute("d", `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
-          path.setAttribute("stroke", "#475569");
-          path.setAttribute("stroke-width", "2.5");
+          path.setAttribute("stroke", "#818cf8");
+          path.setAttribute("stroke-width", "3");
           path.setAttribute("fill", "none");
           path.setAttribute("marker-end", "url(#arrow)");
           path.setAttribute("opacity", linkOpacity);
         }
         linksLayer.appendChild(path);
       });
-    }
+    };
 
-    function renderNodes() {
+    window.renderNodes = function() {
       const nodesLayer = document.getElementById("nodesLayer");
+      if (!nodesLayer) return;
       nodesLayer.innerHTML = "";
 
-      const spotlightActive = !!state.spotlightNodeId;
+      const spotlightActive = !!window.state.spotlightNodeId;
 
-      state.nodes.forEach(node => {
-        if (!isNodeVisibleInActiveBranch(node)) return;
-        if (isNodeHiddenByAncestorCollapse(node.id)) return;
+      window.state.nodes.forEach(node => {
+        if (!window.isNodeVisibleInActiveBranch(node)) return;
+        if (window.isNodeHiddenByAncestorCollapse(node.id)) return;
 
-        const isSpotlightNode = (node.id === state.spotlightNodeId);
-        
-        const isImmediateRelative = spotlightActive && state.links.some(l => 
-          (l.source === state.spotlightNodeId && l.target === node.id) ||
-          (l.target === state.spotlightNodeId && l.source === node.id)
+        const isSpotlightNode = (node.id === window.state.spotlightNodeId);
+        const isImmediateRelative = spotlightActive && window.state.links.some(l => 
+          (l.source === window.state.spotlightNodeId && l.target === node.id) ||
+          (l.target === window.state.spotlightNodeId && l.source === node.id)
         );
 
         let nodeOpacity = "1";
         if (spotlightActive) {
-          nodeOpacity = isSpotlightNode ? "1" : (isImmediateRelative ? "0.85" : "0.28");
+          nodeOpacity = isSpotlightNode ? "1" : (isImmediateRelative ? "0.92" : "0.22");
         }
 
         const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
@@ -1147,7 +1166,7 @@
         fo.setAttribute("y", node.y);
         fo.setAttribute("width", CARD_WIDTH);
         fo.setAttribute("height", CARD_HEIGHT);
-        fo.setAttribute("class", "node-card cursor-pointer no-select overflow-visible transition-opacity duration-300");
+        fo.setAttribute("class", "node-card cursor-pointer no-select overflow-visible");
         fo.setAttribute("style", `opacity: ${nodeOpacity};`);
 
         const isDeceased = node.status === "deceased";
@@ -1155,134 +1174,138 @@
         const isMarried = node.marital_status === "married";
         
         const accentBorder = isDeceased 
-          ? "border-slate-400" 
-          : (isMaternal ? "border-amber-500" : (node.gender === "female" ? "border-pink-400" : "border-indigo-500"));
+          ? "border-slate-300 bg-slate-50/95" 
+          : (isMaternal 
+              ? "border-amber-400 bg-gradient-to-b from-amber-50/40 via-white to-white" 
+              : (node.gender === "female" 
+                  ? "border-pink-400 bg-gradient-to-b from-pink-50/30 via-white to-white" 
+                  : "border-indigo-400 bg-gradient-to-b from-indigo-50/30 via-white to-white"));
 
         const branchBadge = isMaternal
-          ? `<span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Wife's Line</span>`
-          : `<span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">Main Line</span>`;
+          ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500 text-slate-950 uppercase tracking-wider">Wife's Side</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-600 text-white uppercase tracking-wider">Main Line</span>`;
 
         const statusBadge = isDeceased 
-          ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-700 border border-slate-300">🕊️ Deceased</span>`
-          : `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">🌱 Living</span>`;
+          ? `<span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-slate-200 text-slate-700 border border-slate-300">🕊️ Deceased</span>`
+          : `<span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">🌱 Living</span>`;
 
         const maritalBadge = isMarried
-          ? `<span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-200">💍 Married</span>`
-          : `<span class="px-1.5 py-0.5 rounded text-[8px] font-medium bg-slate-100 text-slate-600 border border-slate-200">Unmarried</span>`;
+          ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-0.5"><span>💍</span> Married</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[9px] font-medium bg-slate-100 text-slate-600 border border-slate-200">Single</span>`;
 
-        // Consistent Minimize/Expand option uniformly available across every node
-        const isCollapsed = state.collapsedNodes.has(node.id);
-        const collapseBtn = `<button type="button" onclick="event.stopPropagation(); toggleCollapseSubtree('${node.id}')"
-            class="px-1.5 py-0.5 rounded text-[9px] font-bold transition ${isCollapsed ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
-            ${isCollapsed ? '➕ Expand' : '➖ Minimize'}
+        const isCollapsed = window.state.collapsedNodes.has(node.id);
+        const collapseBtn = `<button type="button" onclick="event.stopPropagation(); window.toggleCollapseSubtree('${node.id}')"
+            class="px-2 py-0.5 rounded-md text-[9px] font-extrabold transition ${isCollapsed ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+            ${isCollapsed ? '➕ Expand' : '➖ Fold'}
           </button>`;
 
-        const spotlightClass = isSpotlightNode ? "spotlight-active ring-4 ring-amber-400 ring-offset-2 z-10" : "";
-        const mainBadgeIndicator = isSpotlightNode ? `<span class="px-1.5 py-0.5 rounded text-[8px] font-black bg-amber-400 text-slate-950 uppercase shadow-xs">🎯 Target</span>` : '';
+        const spotlightClass = isSpotlightNode ? "spotlight-active ring-4 ring-amber-400 ring-offset-4 ring-offset-slate-900 z-10" : "";
+        const avatarIcon = isDeceased ? '🕊️' : (node.gender === 'female' ? '👩' : '👨');
 
         fo.innerHTML = `
-          <div id="card-${node.id}" class="h-full w-full tree-card border-2 ${accentBorder} ${spotlightClass} p-2.5 flex flex-col justify-between" onclick="openDetailsModal('${node.id}')">
-            <!-- Header: Full Name, Branch, Marital Status & Living Status -->
+          <div id="card-${node.id}" class="h-full w-full tree-card border-2 ${accentBorder} ${spotlightClass} p-3 flex flex-col justify-between" onclick="window.openDetailsModal('${node.id}')">
             <div>
-              <div class="flex items-center justify-between gap-1 mb-1">
-                <div class="flex items-center gap-1">
-                  ${branchBadge}
-                  ${mainBadgeIndicator}
-                </div>
-                <div class="flex items-center gap-1">
-                  ${collapseBtn}
-                  ${statusBadge}
-                </div>
+              <div class="flex items-center justify-between gap-1 mb-1.5">
+                <div class="flex items-center gap-1">${branchBadge}</div>
+                <div class="flex items-center gap-1">${collapseBtn} ${statusBadge}</div>
               </div>
-              <div class="flex items-center justify-between gap-1">
-                <div class="truncate">
-                  <div class="font-extrabold text-slate-900 text-xs tracking-tight truncate ${isDeceased ? 'text-slate-600' : ''}">
-                    ${escapeHtml(node.name)}
+              <div class="flex items-start gap-2 pt-0.5">
+                <div class="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-sm shrink-0">
+                  ${avatarIcon}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="font-black text-slate-950 text-[13px] leading-tight tracking-tight truncate ${isDeceased ? 'text-slate-600 line-through' : ''}">
+                    ${window.escapeHtml(node.name)}
                   </div>
-                  <div class="text-[10px] font-bold text-indigo-700 tracking-wide truncate">
-                    ${escapeHtml(node.relationship_to_root)}
+                  <div class="flex items-center justify-between gap-1 mt-0.5">
+                    <span class="text-[11px] font-extrabold text-indigo-600 tracking-wide truncate">
+                      ${window.escapeHtml(node.relationship_to_root)}
+                    </span>
+                    <span class="shrink-0">${maritalBadge}</span>
                   </div>
                 </div>
-                <div>${maritalBadge}</div>
               </div>
             </div>
 
-            <!-- Heritage Info: Gotra, Bansa & Vitals -->
-            <div class="text-[10px] space-y-0.5 pt-1 border-t border-slate-100">
-              <div class="truncate text-slate-700 font-medium">
-                ${node.gotra ? `<span class="font-bold text-slate-900">Gotra:</span> ${escapeHtml(node.gotra)}` : ''}
-                ${node.gotra && node.bansa ? '<span class="text-slate-300 mx-1">|</span>' : ''}
-                ${node.bansa ? `<span class="font-bold text-slate-900">Bansa:</span> ${escapeHtml(node.bansa)}` : ''}
+            <div class="text-[10px] space-y-1 py-1.5 px-2 bg-slate-50/90 rounded-xl border border-slate-200/70 my-0.5">
+              <div class="flex items-center justify-between font-semibold text-slate-800">
+                <span class="truncate"><span class="text-slate-500 font-bold">Gotra:</span> ${node.gotra ? window.escapeHtml(node.gotra) : '-'}</span>
+                <span class="truncate ml-1 text-right"><span class="text-slate-500 font-bold">Bansa:</span> ${node.bansa ? window.escapeHtml(node.bansa) : '-'}</span>
               </div>
-              <div class="flex items-center justify-between text-[9px] text-slate-500 font-semibold">
-                <span>${node.age ? (isDeceased ? 'Death Age: ' : 'Age: ') + node.age + ' yrs' : (isDeceased && node.dod ? 'Passing: ' + node.dod.substring(0,4) : '')}</span>
-                <span class="truncate ml-1 text-slate-700">${node.profession ? escapeHtml(node.profession) : ''}</span>
+              <div class="flex items-center justify-between text-[10px] text-slate-600 font-medium pt-0.5 border-t border-slate-200/50">
+                <span class="font-bold text-slate-700">${node.age ? (isDeceased ? 'Passed at ' : 'Age: ') + node.age + 'y' : 'Age: -'}</span>
+                <span class="truncate ml-1 font-semibold text-slate-800">${node.profession ? window.escapeHtml(node.profession) : ''}</span>
               </div>
-              ${node.phone ? `<div class="truncate text-[9px] text-slate-500">📞 ${escapeHtml(node.phone)}</div>` : ''}
             </div>
 
-            <!-- Uniform Node Actions for every node: Share + Add Relative -->
-            <div class="pt-1.5 border-t border-slate-100 flex items-center justify-between gap-1">
-              <button type="button" onclick="event.stopPropagation(); openShareSheet('${node.id}')"
-                class="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-200 rounded text-[10px] font-bold transition flex items-center gap-0.5">
+            <div class="pt-1 flex items-center justify-between gap-1.5">
+              <button type="button" onclick="event.stopPropagation(); window.openShareSheet('${node.id}')"
+                class="flex-1 py-1 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-lg text-[10px] transition flex items-center justify-center gap-1 shadow-xs">
                 <span>📤</span> Share
               </button>
-              <button type="button" onclick="event.stopPropagation(); openAddModalForNode('${node.id}')"
-                class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 rounded text-[10px] font-bold transition flex items-center gap-0.5">
-                <span>+</span> Add Relative
+              <button type="button" onclick="event.stopPropagation(); window.openAddModalForNode('${node.id}')"
+                class="flex-1 py-1 px-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-lg text-[10px] transition flex items-center justify-center gap-1 shadow-xs">
+                <span>➕</span> Relative
               </button>
             </div>
           </div>
         `;
-        attachNodeDrag(fo, node);
+        window.attachNodeDrag(fo, node);
         nodesLayer.appendChild(fo);
       });
-    }
+    };
 
-    function attachCanvasEvents() {
+    window.attachCanvasEvents = function() {
       const container = document.getElementById("canvasContainer");
+      if (!container) return;
       const start = (x, y) => {
-        state.isDraggingCanvas = true;
-        state.dragStart = { x: x - state.pan.x, y: y - state.pan.y };
+        window.state.isDraggingCanvas = true;
+        window.state.dragStart = { x: x - window.state.pan.x, y: y - window.state.pan.y };
       };
       const move = (x, y) => {
-        if (!state.isDraggingCanvas) return;
-        state.pan.x = x - state.dragStart.x;
-        state.pan.y = y - state.dragStart.y;
-        updateTransform();
+        if (!window.state.isDraggingCanvas) return;
+        window.state.pan.x = x - window.state.dragStart.x;
+        window.state.pan.y = y - window.state.dragStart.y;
+        window.updateTransform();
       };
-      const end = () => { state.isDraggingCanvas = false; };
+      const end = () => { window.state.isDraggingCanvas = false; };
 
       container.addEventListener("mousedown", (e) => { if (!e.target.closest(".node-card")) start(e.clientX, e.clientY); });
       window.addEventListener("mousemove", (e) => move(e.clientX, e.clientY));
       window.addEventListener("mouseup", end);
 
       container.addEventListener("touchstart", (e) => {
-        if (e.touches.length === 1 && !e.target.closest(".node-card")) start(e.touches[0].clientX, e.touches[0].clientY);
+        if (e.touches.length === 1 && !e.target.closest(".node-card")) {
+          start(e.touches[0].clientX, e.touches[0].clientY);
+        }
       }, { passive: true });
-      window.addEventListener("touchmove", (e) => {
-        if (e.touches.length === 1 && state.isDraggingCanvas) move(e.touches[0].clientX, e.touches[0].clientY);
-      }, { passive: true });
-      window.addEventListener("touchend", end);
-    }
 
-    function attachNodeDrag(elem, node) {
+      window.addEventListener("touchmove", (e) => {
+        if (e.touches.length === 1 && window.state.isDraggingCanvas) {
+          move(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+
+      window.addEventListener("touchend", end);
+    };
+
+    window.attachNodeDrag = function(elem, node) {
       let isDragging = false;
       let startX, startY;
       const start = (clientX, clientY) => {
         isDragging = true;
-        startX = clientX - node.x * state.zoom;
-        startY = clientY - node.y * state.zoom;
+        startX = clientX - node.x * window.state.zoom;
+        startY = clientY - node.y * window.state.zoom;
       };
       const move = (clientX, clientY) => {
         if (!isDragging) return;
-        node.x = (clientX - startX) / state.zoom;
-        node.y = (clientY - startY) / state.zoom;
+        node.x = (clientX - startX) / window.state.zoom;
+        node.y = (clientY - startY) / window.state.zoom;
         elem.setAttribute("x", node.x);
         elem.setAttribute("y", node.y);
-        renderLinks();
+        window.renderLinks();
       };
-      const end = () => { if (isDragging) { isDragging = false; saveState(); } };
+      const end = () => { if (isDragging) { isDragging = false; window.saveState(); } };
 
       elem.addEventListener("mousedown", (e) => { start(e.clientX, e.clientY); e.stopPropagation(); });
       window.addEventListener("mousemove", (e) => move(e.clientX, e.clientY));
@@ -1296,29 +1319,16 @@
       }, { passive: true });
       window.addEventListener("touchmove", (e) => { if (e.touches.length === 1 && isDragging) move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
       window.addEventListener("touchend", end);
-    }
+    };
 
-    function zoom(factor) {
-      state.zoom = Math.max(0.2, Math.min(5.0, state.zoom * factor));
-      updateTransform();
-    }
-    function resetZoom() {
-      state.pan = { x: 80, y: 120 };
-      state.zoom = 1;
-      updateTransform();
-    }
-    function updateTransform() {
-      document.getElementById("viewportGroup").setAttribute("transform", `translate(${state.pan.x}, ${state.pan.y}) scale(${state.zoom})`);
-    }
-
-    function toggleDeceasedFields() {
+    window.toggleDeceasedFields = function() {
       const isDeceased = document.getElementById("memberStatus").value === "deceased";
       document.getElementById("deathDateContainer").classList.toggle("hidden", !isDeceased);
       document.getElementById("lblAge").textContent = isDeceased ? "Final Death Age (or Manual)" : "Current Age (or Manual)";
-      autoCalculateAge();
-    }
+      window.autoCalculateAge();
+    };
 
-    function autoCalculateAge() {
+    window.autoCalculateAge = function() {
       const dobVal = document.getElementById("memberDob").value;
       const dodVal = document.getElementById("memberDod").value;
       const isDeceased = document.getElementById("memberStatus").value === "deceased";
@@ -1334,84 +1344,138 @@
           }
         }
       }
-    }
+    };
 
-    function populateLinkSelect(selectedId = null) {
+    window.autoArrangeTree = function() {
+      if (window.state.nodes.length === 0) return;
+
+      const incoming = {};
+      window.state.nodes.forEach(n => incoming[n.id] = 0);
+      window.state.links.forEach(l => {
+        if (l.type === "parent" && incoming[l.target] !== undefined) {
+          incoming[l.target]++;
+        }
+      });
+
+      let currentLevel = window.state.nodes.filter(n => incoming[n.id] === 0);
+      if (currentLevel.length === 0) currentLevel = [window.state.nodes[0]];
+
+      const levels = [];
+      const visited = new Set();
+
+      while (currentLevel.length > 0) {
+        levels.push(currentLevel);
+        currentLevel.forEach(n => visited.add(n.id));
+        const nextLevel = [];
+
+        currentLevel.forEach(parent => {
+          const children = window.state.links
+            .filter(l => l.source === parent.id && l.type === "parent")
+            .map(l => window.state.nodes.find(n => n.id === l.target))
+            .filter(n => n && !visited.has(n.id));
+
+          children.forEach(c => {
+            if (!nextLevel.some(x => x.id === c.id)) nextLevel.push(c);
+          });
+        });
+        currentLevel = nextLevel;
+      }
+
+      const unplaced = window.state.nodes.filter(n => !visited.has(n.id));
+      if (unplaced.length > 0) levels.push(unplaced);
+
+      const hSpacing = CARD_WIDTH + 60;
+      const vSpacing = CARD_HEIGHT + 75;
+
+      levels.forEach((row, rowIndex) => {
+        const totalW = row.length * hSpacing;
+        const startX = Math.max(60, 480 - totalW / 2);
+        row.forEach((node, colIndex) => {
+          node.x = startX + colIndex * hSpacing;
+          node.y = 50 + rowIndex * vSpacing;
+        });
+      });
+
+      window.saveState();
+      window.render();
+      window.showToast("Tree aligned by generation level.", "success");
+    };
+
+    window.populateLinkSelect = function(selectedId = null) {
       const select = document.getElementById("linkTargetNode");
+      if (!select) return;
       select.innerHTML = '<option value="">-- No Direct Link (Root Branch) --</option>';
-      state.nodes.forEach(n => {
+      window.state.nodes.forEach(n => {
         const opt = document.createElement("option");
         opt.value = n.id;
         opt.textContent = `${n.name} (${n.relationship_to_root})`;
         if (n.id === selectedId) opt.selected = true;
         select.appendChild(opt);
       });
-    }
+    };
 
-    function openDetailsModal(nodeId) {
-      const node = state.nodes.find(n => n.id === nodeId);
+    window.openDetailsModal = function(nodeId) {
+      const node = window.state.nodes.find(n => n.id === nodeId);
       if (!node) return;
 
-      document.getElementById("detailName").textContent = node.name;
-      document.getElementById("detailRelationship").textContent = node.relationship_to_root;
+      document.getElementById("detailName").textContent = node.name || "";
+      document.getElementById("detailRelationship").textContent = node.relationship_to_root || "";
       document.getElementById("detailGotra").textContent = node.gotra || "-";
       document.getElementById("detailBansa").textContent = node.bansa || "-";
       document.getElementById("detailBranch").textContent = node.branch === "maternal" ? "Wife's / In-Law Lineage" : "Main / Husband Lineage";
       document.getElementById("detailMarital").textContent = node.marital_status === "married" ? "💍 Married" : "Unmarried (Single)";
-      document.getElementById("detailDob").textContent = node.dob || "Unknown / Not recorded";
-      document.getElementById("detailDod").textContent = node.dod || (node.status === "deceased" ? "Deceased (Date unknown)" : "N/A (Living)");
+      document.getElementById("detailDob").textContent = node.dob || "Unknown";
+      document.getElementById("detailDod").textContent = node.dod || (node.status === "deceased" ? "Deceased" : "N/A");
       document.getElementById("detailProfession").textContent = node.profession || "-";
       document.getElementById("detailPhone").textContent = node.phone || "-";
       document.getElementById("detailAddress").textContent = node.address || "-";
 
       const isDeceased = node.status === "deceased";
-      document.getElementById("detailAge").textContent = node.age 
-        ? `${node.age} Years ${isDeceased ? '(At passing)' : ''}` 
-        : "Unknown / Not entered";
+      document.getElementById("detailAge").textContent = node.age ? `${node.age} Years ${isDeceased ? '(At passing)' : ''}` : "Unknown";
 
       document.getElementById("detailStatusBadge").innerHTML = isDeceased 
-        ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300">🕊️ Deceased</span>`
-        : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">🌱 Living</span>`;
+        ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">🕊️ Deceased</span>`
+        : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">🌱 Living</span>`;
 
-      const parents = state.links.filter(l => l.target === node.id && l.type === "parent")
-        .map(l => state.nodes.find(n => n.id === l.source)).filter(Boolean);
+      const parents = window.state.links.filter(l => l.target === node.id && l.type === "parent")
+        .map(l => window.state.nodes.find(n => n.id === l.source)).filter(Boolean);
       document.getElementById("detailParents").innerHTML = parents.length 
-        ? parents.map(p => `<span class="px-2 py-0.5 bg-slate-200 rounded font-semibold text-slate-800 cursor-pointer" onclick="closeDetailsModal(); focusOnNode('${p.id}')">${escapeHtml(p.name)}</span>`).join("") 
-        : "None Recorded";
+        ? parents.map(p => `<span class="px-2 py-0.5 bg-slate-200 rounded font-semibold text-slate-800 cursor-pointer" onclick="window.closeDetailsModal(); window.focusOnNode('${p.id}')">${window.escapeHtml(p.name)}</span>`).join("") 
+        : "None";
 
-      const spouses = state.links.filter(l => (l.source === node.id || l.target === node.id) && l.type === "spouse")
-        .map(l => state.nodes.find(n => n.id === (l.source === node.id ? l.target : l.source))).filter(Boolean);
+      const spouses = window.state.links.filter(l => (l.source === node.id || l.target === node.id) && l.type === "spouse")
+        .map(l => window.state.nodes.find(n => n.id === (l.source === node.id ? l.target : l.source))).filter(Boolean);
       document.getElementById("detailSpouses").innerHTML = spouses.length 
-        ? spouses.map(s => `<span class="px-2 py-0.5 bg-pink-100 text-pink-800 rounded font-semibold cursor-pointer" onclick="closeDetailsModal(); focusOnNode('${s.id}')">${escapeHtml(s.name)}</span>`).join("") 
-        : "None Recorded";
+        ? spouses.map(s => `<span class="px-2 py-0.5 bg-pink-100 text-pink-800 rounded font-semibold cursor-pointer" onclick="window.closeDetailsModal(); window.focusOnNode('${s.id}')">${window.escapeHtml(s.name)}</span>`).join("") 
+        : "None";
 
-      const siblings = state.links.filter(l => (l.source === node.id || l.target === node.id) && l.type === "sibling")
-        .map(l => state.nodes.find(n => n.id === (l.source === node.id ? l.target : l.source))).filter(Boolean);
+      const siblings = window.state.links.filter(l => (l.source === node.id || l.target === node.id) && l.type === "sibling")
+        .map(l => window.state.nodes.find(n => n.id === (l.source === node.id ? l.target : l.source))).filter(Boolean);
       document.getElementById("detailSiblings").innerHTML = siblings.length 
-        ? siblings.map(sb => `<span class="px-2 py-0.5 bg-sky-100 text-sky-800 rounded font-semibold cursor-pointer" onclick="closeDetailsModal(); focusOnNode('${sb.id}')">${escapeHtml(sb.name)}</span>`).join("") 
-        : "None Recorded";
+        ? siblings.map(sb => `<span class="px-2 py-0.5 bg-sky-100 text-sky-800 rounded font-semibold cursor-pointer" onclick="window.closeDetailsModal(); window.focusOnNode('${sb.id}')">${window.escapeHtml(sb.name)}</span>`).join("") 
+        : "None";
 
-      const children = state.links.filter(l => l.source === node.id && l.type === "parent")
-        .map(l => state.nodes.find(n => n.id === l.target)).filter(Boolean);
+      const children = window.state.links.filter(l => l.source === node.id && l.type === "parent")
+        .map(l => window.state.nodes.find(n => n.id === l.target)).filter(Boolean);
       document.getElementById("detailChildren").innerHTML = children.length 
-        ? children.map(c => `<span class="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-semibold cursor-pointer" onclick="closeDetailsModal(); focusOnNode('${c.id}')">${escapeHtml(c.name)}</span>`).join("") 
-        : "None Recorded";
+        ? children.map(c => `<span class="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-semibold cursor-pointer" onclick="window.closeDetailsModal(); window.focusOnNode('${c.id}')">${window.escapeHtml(c.name)}</span>`).join("") 
+        : "None";
 
       document.getElementById("btnEditFromDetails").onclick = () => {
-        closeDetailsModal();
-        openEditModal(node.id);
+        window.closeDetailsModal();
+        window.openEditModal(node.id);
       };
 
       document.getElementById("detailsModal").classList.remove("hidden");
       document.getElementById("detailsModal").classList.add("flex");
-    }
+    };
 
-    function closeDetailsModal() {
+    window.closeDetailsModal = function() {
       document.getElementById("detailsModal").classList.add("hidden");
       document.getElementById("detailsModal").classList.remove("flex");
-    }
+    };
 
-    function openAddModal() {
+    window.openAddModal = function() {
       document.getElementById("modalTitle").textContent = "Add Family Member";
       document.getElementById("memberForm").reset();
       document.getElementById("memberId").value = "";
@@ -1420,27 +1484,27 @@
       document.getElementById("nodeSpecificActions").classList.remove("flex");
       document.getElementById("linkingSection").classList.remove("hidden");
       
-      document.getElementById("memberBranch").value = state.activeBranch === "maternal" ? "maternal" : "paternal";
+      document.getElementById("memberBranch").value = window.state.activeBranch === "maternal" ? "maternal" : "paternal";
       document.getElementById("memberMarital").value = "married";
       
-      toggleDeceasedFields();
-      populateLinkSelect();
+      window.toggleDeceasedFields();
+      window.populateLinkSelect();
       document.getElementById("memberModal").classList.remove("hidden");
       document.getElementById("memberModal").classList.add("flex");
-    }
+    };
 
-    function openAddModalForNode(targetNodeId) {
-      openAddModal();
-      const targetNode = state.nodes.find(n => n.id === targetNodeId);
+    window.openAddModalForNode = function(targetNodeId) {
+      window.openAddModal();
+      const targetNode = window.state.nodes.find(n => n.id === targetNodeId);
       if (targetNode) {
         document.getElementById("linkTargetNode").value = targetNodeId;
         document.getElementById("memberBranch").value = targetNode.branch || "paternal";
-        document.getElementById("linkRelationType").value = "child";
+        document.getElementById("linkRelationType").value = "parent";
       }
-    }
+    };
 
-    function openEditModal(nodeId) {
-      const node = state.nodes.find(n => n.id === nodeId);
+    window.openEditModal = function(nodeId) {
+      const node = window.state.nodes.find(n => n.id === nodeId);
       if (!node) return;
 
       document.getElementById("modalTitle").textContent = "Edit Member Details";
@@ -1461,24 +1525,21 @@
       document.getElementById("memberAddress").value = node.address || "";
 
       document.getElementById("linkingSection").classList.add("hidden");
-      
       document.getElementById("nodeSpecificActions").classList.remove("hidden");
       document.getElementById("nodeSpecificActions").classList.add("flex");
 
-      toggleDeceasedFields();
-
+      window.toggleDeceasedFields();
       document.getElementById("btnDelete").classList.remove("hidden");
-
       document.getElementById("memberModal").classList.remove("hidden");
       document.getElementById("memberModal").classList.add("flex");
-    }
+    };
 
-    function closeModal() {
+    window.closeModal = function() {
       document.getElementById("memberModal").classList.add("hidden");
       document.getElementById("memberModal").classList.remove("flex");
-    }
+    };
 
-    function handleFormSubmit(e) {
+    window.handleFormSubmit = function(e) {
       e.preventDefault();
       const id = document.getElementById("memberId").value;
       const name = document.getElementById("memberName").value.trim();
@@ -1497,9 +1558,10 @@
       const address = document.getElementById("memberAddress").value.trim();
 
       if (id) {
-        const node = state.nodes.find(n => n.id === id);
+        const node = window.state.nodes.find(n => n.id === id);
         if (node) {
           Object.assign(node, { name, relationship_to_root, gender, branch, status, marital_status, gotra, bansa, dob, dod, age, profession, phone, address });
+          window.showToast(`Updated details for ${name}.`, "success");
         }
       } else {
         const newNodeId = "node_" + Date.now();
@@ -1508,16 +1570,16 @@
 
         let posX = 260, posY = 200;
         if (targetNodeId) {
-          const target = state.nodes.find(n => n.id === targetNodeId);
+          const target = window.state.nodes.find(n => n.id === targetNodeId);
           if (target) {
-            if (relationType === "child") { 
+            if (relationType === "parent") { 
               posX = target.x; 
-              posY = target.y + 220; 
-            } else if (relationType === "parent") { 
+              posY = Math.max(30, target.y - 230); 
+            } else if (relationType === "child") { 
               posX = target.x; 
-              posY = Math.max(30, target.y - 220); 
+              posY = target.y + 230; 
             } else if (relationType === "spouse") { 
-              const existingSpouseLinks = state.links.filter(l => (l.source === target.id || l.target === target.id) && l.type === "spouse");
+              const existingSpouseLinks = window.state.links.filter(l => (l.source === target.id || l.target === target.id) && l.type === "spouse");
               const offsetFactor = (existingSpouseLinks.length % 2 === 0) ? (existingSpouseLinks.length + 1) : -(existingSpouseLinks.length);
               posX = target.x + (CARD_WIDTH + 45) * (offsetFactor > 0 ? 1 : -1); 
               posY = target.y; 
@@ -1528,7 +1590,7 @@
           }
         }
 
-        state.nodes.push({
+        window.state.nodes.push({
           id: newNodeId,
           name,
           relationship_to_root,
@@ -1549,84 +1611,175 @@
         });
 
         if (targetNodeId) {
-          if (relationType === "child") {
-            state.links.push({ id: "l_" + Date.now(), source: targetNodeId, target: newNodeId, type: "parent" });
-          } else if (relationType === "parent") {
-            state.links.push({ id: "l_" + Date.now(), source: newNodeId, target: targetNodeId, type: "parent" });
+          if (relationType === "parent") {
+            window.state.links.push({ id: "l_" + Date.now(), source: newNodeId, target: targetNodeId, type: "parent" });
+          } else if (relationType === "child") {
+            window.state.links.push({ id: "l_" + Date.now(), source: targetNodeId, target: newNodeId, type: "parent" });
           } else if (relationType === "spouse") {
-            state.links.push({ id: "l_" + Date.now(), source: targetNodeId, target: newNodeId, type: "spouse" });
+            window.state.links.push({ id: "l_" + Date.now(), source: targetNodeId, target: newNodeId, type: "spouse" });
           } else if (relationType === "sibling") {
-            state.links.push({ id: "l_" + Date.now(), source: targetNodeId, target: newNodeId, type: "sibling" });
+            window.state.links.push({ id: "l_" + Date.now(), source: targetNodeId, target: newNodeId, type: "sibling" });
           }
         }
+        window.showToast(`Added ${name} to the heritage register.`, "success");
       }
 
-      saveState();
-      closeModal();
-      render();
-    }
+      window.saveState();
+      window.closeModal();
+      window.render();
+    };
 
-    function deleteCurrentNode() {
+    window.deleteCurrentNode = function() {
       const id = document.getElementById("memberId").value;
-      const node = state.nodes.find(n => n.id === id);
+      const node = window.state.nodes.find(n => n.id === id);
       if (!node) return;
 
-      if (!confirm(`Are you sure you want to permanently delete "${node.name}" and all their links?`)) {
-        return;
+      window.askConfirm("Delete Member", `Permanently remove ${node.name} and all associated relationship links?`, () => {
+        window.state.nodes = window.state.nodes.filter(n => n.id !== id);
+        window.state.links = window.state.links.filter(l => l.source !== id && l.target !== id);
+
+        window.saveState();
+        window.closeModal();
+        window.render();
+        window.showToast(`Deleted ${node.name}.`);
+      });
+    };
+
+    window.openShareSheet = function(nodeId) {
+      currentSharingNodeId = nodeId;
+      const node = window.state.nodes.find(n => n.id === nodeId);
+      if (!node) return;
+
+      document.getElementById("shareSheetSubtitle").textContent = `Invite relatives to view/add records for ${node.name}`;
+      
+      const currentRoom = window.getCurrentRoomId();
+      const payload = JSON.stringify({ nodes: window.state.nodes, links: window.state.links });
+      const encoded = btoa(unescape(encodeURIComponent(payload)));
+      const shareUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoom}&focusNode=${node.id}#${encoded}`;
+
+      document.getElementById("shareSheetUrlInput").value = shareUrl;
+      document.getElementById("shareSheetModal").classList.remove("hidden");
+      document.getElementById("shareSheetModal").classList.add("flex");
+    };
+
+    window.openShareSheetForActiveNode = function() {
+      const id = document.getElementById("memberId").value;
+      if (id) {
+        window.closeModal();
+        window.openShareSheet(id);
       }
+    };
 
-      state.nodes = state.nodes.filter(n => n.id !== id);
-      state.links = state.links.filter(l => l.source !== id && l.target !== id);
+    window.closeShareSheetModal = function() {
+      document.getElementById("shareSheetModal").classList.add("hidden");
+      document.getElementById("shareSheetModal").classList.remove("flex");
+    };
 
-      saveState();
-      closeModal();
-      render();
-    }
+    window.shareViaWhatsApp = function() {
+      const node = window.state.nodes.find(n => n.id === currentSharingNodeId);
+      const name = node ? node.name : "our relative";
+      const url = document.getElementById("shareSheetUrlInput").value;
+      const text = encodeURIComponent(`Namaskar! Please view and add your family branch/details for ${name} on our Vanshavali Family Tree:\n\n${url}`);
+      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    };
 
-    function toggleExportMenu() {
+    window.shareViaEmail = function() {
+      const node = window.state.nodes.find(n => n.id === currentSharingNodeId);
+      const name = node ? node.name : "our family";
+      const url = document.getElementById("shareSheetUrlInput").value;
+      const subject = encodeURIComponent(`Invitation to join Vanshavali Family Tree - ${name}`);
+      const body = encodeURIComponent(`Hello,\n\nYou are invited to view and add your family lineage details to our Vanshavali Family Tree for ${name}.\n\nClick the link below:\n${url}\n\nWarm regards,\nVanshavali Heritage Register`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    };
+
+    window.shareViaDeviceNative = function() {
+      const node = window.state.nodes.find(n => n.id === currentSharingNodeId);
+      const name = node ? node.name : "Relative";
+      const url = document.getElementById("shareSheetUrlInput").value;
+
+      if (navigator.share) {
+        navigator.share({
+          title: `Vanshavali Family Tree - ${name}`,
+          text: `View and add your family branch/details for ${name}:`,
+          url: url
+        }).catch(() => {});
+      } else {
+        window.copyShareSheetLink();
+      }
+    };
+
+    window.copyShareSheetLink = function() {
+      const copyText = document.getElementById("shareSheetUrlInput");
+      copyText.select();
+      copyText.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      window.showToast("Direct Node Link copied to clipboard!", "success");
+    };
+
+    window.shareTreeLink = function() {
+      try {
+        const currentRoom = window.getCurrentRoomId();
+        const payload = JSON.stringify({ nodes: window.state.nodes, links: window.state.links });
+        const encoded = btoa(unescape(encodeURIComponent(payload)));
+        const shareUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoom}#${encoded}`;
+
+        if (navigator.share) {
+          navigator.share({
+            title: "Vanshavali Family Heritage Tree",
+            text: "Open our family heritage tree directly:",
+            url: shareUrl
+          }).catch(() => {});
+        } else {
+          const tempInput = document.createElement("input");
+          document.body.appendChild(tempInput);
+          tempInput.value = shareUrl;
+          tempInput.select();
+          document.execCommand('copy');
+          document.body.removeChild(tempInput);
+          window.showToast("Full tree share link copied to clipboard!", "success");
+        }
+      } catch (err) {
+        console.warn("Share payload notice:", err);
+      }
+    };
+
+    window.toggleExportMenu = function() {
       document.getElementById("exportDropdown").classList.toggle("hidden");
-    }
+    };
+
     window.addEventListener("click", (e) => {
-      if (!e.target.closest(".relative")) {
-        document.getElementById("exportDropdown").classList.add("hidden");
+      if (!e.target.closest(".relative") && !e.target.closest("#mobileBottomNav")) {
+        const drop = document.getElementById("exportDropdown");
+        if (drop) drop.classList.add("hidden");
       }
     });
 
-    // --- Exports (PDF, XLSX, DOC, Print) ---
-    function exportSinglePersonPDF() {
+    window.getRelativeSummary = function(nodeId) {
+      const parents = window.state.links.filter(l => l.target === nodeId && l.type === "parent")
+        .map(l => window.state.nodes.find(n => n.id === l.source)?.name).filter(Boolean).join(", ") || "None";
+      const spouses = window.state.links.filter(l => (l.source === nodeId || l.target === nodeId) && l.type === "spouse")
+        .map(l => window.state.nodes.find(n => n.id === (l.source === nodeId ? l.target : l.source))?.name).filter(Boolean).join(", ") || "None";
+      const children = window.state.links.filter(l => l.source === nodeId && l.type === "parent")
+        .map(l => window.state.nodes.find(n => n.id === l.target)?.name).filter(Boolean).join(", ") || "None";
+      return { parents, spouses, children };
+    };
+
+    window.exportSinglePersonPDF = function() {
       const id = document.getElementById("memberId").value;
-      const node = state.nodes.find(n => n.id === id);
+      const node = window.state.nodes.find(n => n.id === id);
       if (!node) return;
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
       doc.setFontSize(18);
-      doc.text("Family Heritage Certificate", 14, 20);
+      doc.text("Family Heritage Certificate & Lineage Dossier", 14, 20);
       doc.setFontSize(10);
       doc.text(`Record Generated: ${new Date().toLocaleDateString()}`, 14, 27);
 
-      const parents = state.links
-        .filter(l => l.target === node.id && l.type === "parent")
-        .map(l => state.nodes.find(n => n.id === l.source)?.name)
-        .filter(Boolean).join(", ") || "None Listed";
-
-      const spouses = state.links
-        .filter(l => (l.source === node.id || l.target === node.id) && l.type === "spouse")
-        .map(l => state.nodes.find(n => n.id === (l.source === node.id ? l.target : l.source))?.name)
-        .filter(Boolean).join(", ") || "None Listed";
-
-      const siblings = state.links
-        .filter(l => (l.source === node.id || l.target === node.id) && l.type === "sibling")
-        .map(l => state.nodes.find(n => n.id === (l.source === node.id ? l.target : l.source))?.name)
-        .filter(Boolean).join(", ") || "None Listed";
-
-      const children = state.links
-        .filter(l => l.source === node.id && l.type === "parent")
-        .map(l => state.nodes.find(n => n.id === l.target)?.name)
-        .filter(Boolean).join(", ") || "None Listed";
-
+      const rels = window.getRelativeSummary(node.id);
       const isDeceased = node.status === 'deceased';
+
       const personData = [
         ['Full Name', node.name],
         ['Relationship to Root', node.relationship_to_root],
@@ -1641,95 +1794,112 @@
         ['Profession', node.profession || '-'],
         ['Phone Number', node.phone || '-'],
         ['Address', node.address || '-'],
-        ['Parents', parents],
-        ['Spouse(s)', spouses],
-        ['Brothers / Sisters', siblings],
-        ['Children', children]
+        ['Parents (Prior Generation)', rels.parents],
+        ['Spouse(s)', rels.spouses],
+        ['Children (Next Generation)', rels.children]
       ];
 
       doc.autoTable({
         startY: 34,
-        head: [['Heritage Field', 'Details']],
+        head: [['Heritage Property', 'Details']],
         body: personData,
         theme: 'striped',
         headStyles: { fillColor: [79, 70, 229] },
         styles: { cellPadding: 3.5 }
       });
 
-      doc.save(`${node.name.replace(/\s+/g, '_')}_Heritage_Record.pdf`);
-    }
+      doc.save(`${node.name.replace(/\s+/g, '_')}_Heritage_Dossier.pdf`);
+      window.showToast("Single Person PDF Dossier generated!", "success");
+    };
 
-    function exportToPDF() {
+    window.exportToPDF = function() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF('landscape');
       doc.setFontSize(16);
-      doc.text("Vanshavali Family Heritage Register", 14, 18);
+      doc.text("Vanshavali Family Heritage Register (Full Graph & List)", 14, 18);
       doc.setFontSize(10);
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 25);
 
-      const tableData = state.nodes.map(n => [
-        n.name,
-        n.relationship_to_root,
-        n.branch === "maternal" ? "Wife's Side" : "Main Side",
-        n.marital_status === "married" ? "Married" : "Unmarried",
-        n.status === "deceased" ? "Deceased" : "Living",
-        n.gotra || "-",
-        n.bansa || "-",
-        n.age ? `${n.age} yrs` : (n.dob || "-"),
-        n.profession || "-",
-        `${n.phone ? n.phone + ' | ' : ''}${n.address || '-'}`
-      ]);
+      const tableData = window.state.nodes.map(n => {
+        const rels = window.getRelativeSummary(n.id);
+        return [
+          n.name,
+          n.relationship_to_root,
+          n.branch === "maternal" ? "Wife's Side" : "Main Side",
+          n.marital_status === "married" ? "Married" : "Unmarried",
+          n.status === "deceased" ? "Deceased" : "Living",
+          n.gotra || "-",
+          n.bansa || "-",
+          n.age ? `${n.age} yrs` : (n.dob || "-"),
+          n.profession || "-",
+          `${n.phone ? n.phone + ' | ' : ''}${n.address || '-'}`,
+          `P: ${rels.parents} | S: ${rels.spouses} | C: ${rels.children}`
+        ];
+      });
 
       doc.autoTable({
         startY: 30,
-        head: [['Full Name', 'Rel. to Root', 'Branch', 'Marital', 'Status', 'Gotra', 'Bansa', 'Age / DOB', 'Profession', 'Phone & Address']],
+        head: [['Full Name', 'Rel. to Root', 'Branch', 'Marital', 'Status', 'Gotra', 'Bansa', 'Age / DOB', 'Profession', 'Phone & Address', 'Relatives (P/S/C)']],
         body: tableData,
         theme: 'striped',
-        headStyles: { fillColor: [79, 70, 229] }
+        headStyles: { fillColor: [79, 70, 229] },
+        styles: { fontSize: 8 }
       });
 
-      doc.save(`Vanshavali_Tree_${new Date().toISOString().slice(0,10)}.pdf`);
-    }
+      doc.save(`Vanshavali_Tree_Heritage_Register_${new Date().toISOString().slice(0,10)}.pdf`);
+      window.showToast("Full PDF Register exported!", "success");
+    };
 
-    function exportToExcel() {
-      const rows = state.nodes.map(n => ({
-        "Full Name": n.name,
-        "Relationship": n.relationship_to_root,
-        "Branch": n.branch === "maternal" ? "Wife's / In-Law Lineage" : "Main Lineage",
-        "Gender": n.gender,
-        "Marital Status": n.marital_status === "married" ? "Married" : "Unmarried",
-        "Status": n.status,
-        "Gotra": n.gotra || "",
-        "Bansa": n.bansa || "",
-        "Age": n.age || "",
-        "Date of Birth": n.dob || "",
-        "Date of Passing": n.dod || "",
-        "Profession": n.profession || "",
-        "Phone": n.phone || "",
-        "Address": n.address || ""
-      }));
+    window.exportToExcel = function() {
+      const rows = window.state.nodes.map(n => {
+        const rels = window.getRelativeSummary(n.id);
+        return {
+          "Full Name": n.name,
+          "Relationship": n.relationship_to_root,
+          "Branch": n.branch === "maternal" ? "Wife's / In-Law Lineage" : "Main Lineage",
+          "Gender": n.gender,
+          "Marital Status": n.marital_status === "married" ? "Married" : "Unmarried",
+          "Status": n.status,
+          "Gotra": n.gotra || "",
+          "Bansa": n.bansa || "",
+          "Age": n.age || "",
+          "Date of Birth": n.dob || "",
+          "Date of Passing": n.dod || "",
+          "Profession": n.profession || "",
+          "Phone": n.phone || "",
+          "Address": n.address || "",
+          "Parents": rels.parents,
+          "Spouses": rels.spouses,
+          "Children": rels.children
+        };
+      });
 
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Heritage Lineage");
       XLSX.writeFile(wb, `Vanshavali_Tree_${new Date().toISOString().slice(0,10)}.xlsx`);
-    }
+      window.showToast("Excel spreadsheet downloaded!", "success");
+    };
 
-    function exportToWord() {
-      let rowsHtml = state.nodes.map(n => `
-        <tr>
-          <td style="border:1px solid #cbd5e1; padding:6px; font-weight:bold;">${escapeHtml(n.name)}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(n.relationship_to_root)}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${n.branch === 'maternal' ? "Wife's Lineage" : "Main Lineage"}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${n.marital_status === 'married' ? 'Married' : 'Unmarried'}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${n.status}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(n.gotra || '-')}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(n.bansa || '-')}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${n.age || '-'}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(n.profession || '-')}</td>
-          <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(n.phone || '')} ${escapeHtml(n.address || '')}</td>
-        </tr>
-      `).join("");
+    window.exportToWord = function() {
+      let rowsHtml = window.state.nodes.map(n => {
+        const rels = window.getRelativeSummary(n.id);
+        return `
+          <tr>
+            <td style="border:1px solid #cbd5e1; padding:6px; font-weight:bold;">${window.escapeHtml(n.name)}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${window.escapeHtml(n.relationship_to_root)}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${n.branch === 'maternal' ? "Wife's Lineage" : "Main Lineage"}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${n.marital_status === 'married' ? 'Married' : 'Unmarried'}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${n.status}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${window.escapeHtml(n.gotra || '-')}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${window.escapeHtml(n.bansa || '-')}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${n.age || '-'}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${window.escapeHtml(n.profession || '-')}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">${window.escapeHtml(n.phone || '')} ${window.escapeHtml(n.address || '')}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">Parents: ${rels.parents} | Spouses: ${rels.spouses} | Children: ${rels.children}</td>
+          </tr>
+        `;
+      }).join("");
 
       const docHtml = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -1737,7 +1907,7 @@
         <body style="font-family: Arial, sans-serif;">
           <h2>Vanshavali Family Heritage Register</h2>
           <p>Generated: ${new Date().toLocaleDateString()}</p>
-          <table style="width:100%; border-collapse:collapse; text-align:left;">
+          <table style="width:100%; border-collapse:collapse; text-align:left; font-size:11px;">
             <thead>
               <tr style="background:#4f46e5; color:white;">
                 <th style="padding:6px; border:1px solid #cbd5e1;">Name</th>
@@ -1750,6 +1920,7 @@
                 <th style="padding:6px; border:1px solid #cbd5e1;">Age</th>
                 <th style="padding:6px; border:1px solid #cbd5e1;">Profession</th>
                 <th style="padding:6px; border:1px solid #cbd5e1;">Contact & Address</th>
+                <th style="padding:6px; border:1px solid #cbd5e1;">Heritage Connections</th>
               </tr>
             </thead>
             <tbody>${rowsHtml}</tbody>
@@ -1765,28 +1936,33 @@
       a.download = `Vanshavali_Tree_${new Date().toISOString().slice(0,10)}.doc`;
       a.click();
       URL.revokeObjectURL(url);
-    }
-
-    window.onbeforeprint = () => {
-      document.getElementById("printDate").textContent = new Date().toLocaleDateString();
-      const tbody = document.getElementById("printTableBody");
-      tbody.innerHTML = state.nodes.map(n => `
-        <tr>
-          <td class="border border-slate-300 p-2 font-bold">${escapeHtml(n.name)}</td>
-          <td class="border border-slate-300 p-2 font-medium">${escapeHtml(n.relationship_to_root)}</td>
-          <td class="border border-slate-300 p-2">${n.branch === 'maternal' ? "Wife's Side" : "Main Side"}</td>
-          <td class="border border-slate-300 p-2">${n.marital_status === 'married' ? 'Married' : 'Unmarried'}</td>
-          <td class="border border-slate-300 p-2">${n.status === 'deceased' ? '🕊️ Deceased' : '🌱 Living'}</td>
-          <td class="border border-slate-300 p-2">${escapeHtml(n.gotra || '-')}</td>
-          <td class="border border-slate-300 p-2">${escapeHtml(n.bansa || '-')}</td>
-          <td class="border border-slate-300 p-2">${n.age ? n.age + ' yrs' : (n.dob || '-')}</td>
-          <td class="border border-slate-300 p-2">${escapeHtml(n.profession || '-')}</td>
-          <td class="border border-slate-300 p-2">${escapeHtml(n.phone || '')} ${escapeHtml(n.address || '-')}</td>
-        </tr>
-      `).join("");
+      window.showToast("Word (.doc) report exported!", "success");
     };
 
-    function escapeHtml(str) {
+    window.printFullRegister = function() {
+      document.getElementById("printDate").textContent = new Date().toLocaleDateString();
+      const tbody = document.getElementById("printTableBody");
+      tbody.innerHTML = window.state.nodes.map(n => {
+        return `
+          <tr>
+            <td class="border border-slate-300 p-2 font-bold">${window.escapeHtml(n.name)}</td>
+            <td class="border border-slate-300 p-2 font-medium">${window.escapeHtml(n.relationship_to_root)}</td>
+            <td class="border border-slate-300 p-2">${n.branch === 'maternal' ? "Wife's Side" : "Main Side"}</td>
+            <td class="border border-slate-300 p-2">${n.marital_status === 'married' ? 'Married' : 'Unmarried'}</td>
+            <td class="border border-slate-300 p-2">${n.status === 'deceased' ? '🕊️ Deceased' : '🌱 Living'}</td>
+            <td class="border border-slate-300 p-2">${window.escapeHtml(n.gotra || '-')}</td>
+            <td class="border border-slate-300 p-2">${window.escapeHtml(n.bansa || '-')}</td>
+            <td class="border border-slate-300 p-2">${n.age ? n.age + ' yrs' : (n.dob || '-')}</td>
+            <td class="border border-slate-300 p-2">${window.escapeHtml(n.profession || '-')}</td>
+            <td class="border border-slate-300 p-2">${window.escapeHtml(n.phone || '')} ${window.escapeHtml(n.address || '-')}</td>
+          </tr>
+        `;
+      }).join("");
+
+      window.print();
+    };
+
+    window.escapeHtml = function(str) {
       if (!str) return "";
       return String(str)
         .replace(/&/g, "&amp;")
@@ -1794,9 +1970,62 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-    }
+    };
 
-    window.addEventListener("DOMContentLoaded", init);
+    window.loadLocalOrCloudData = function() {
+      const currentRoom = window.getCurrentRoomId();
+      const storageKey = "vanshavali_tree_data_" + currentRoom;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const focusTarget = urlParams.get("focusNode");
+
+      if (window.location.hash && window.location.hash.length > 20) {
+        try {
+          const rawHash = window.location.hash.substring(1);
+          const decoded = JSON.parse(decodeURIComponent(escape(atob(rawHash))));
+          if (Array.isArray(decoded.nodes)) {
+            window.state.nodes = decoded.nodes;
+            window.state.links = decoded.links || [];
+            localStorage.setItem(storageKey, JSON.stringify({ nodes: window.state.nodes, links: window.state.links }));
+          }
+        } catch (e) {
+          console.warn("URL hash parse notice:", e);
+        }
+      }
+
+      if (window.state.nodes.length === 0) {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            window.state.nodes = parsed.nodes || [];
+            window.state.links = parsed.links || [];
+          } catch(e) {
+            window.state.nodes = defaultData.nodes;
+            window.state.links = defaultData.links;
+          }
+        } else {
+          window.state.nodes = defaultData.nodes;
+          window.state.links = defaultData.links;
+        }
+      }
+
+      if (focusTarget) {
+        window.state.spotlightNodeId = focusTarget;
+      }
+
+      window.render();
+      window.attachCanvasEvents();
+      window.checkAuthGatewayStatus();
+
+      if (focusTarget) {
+        setTimeout(() => window.focusOnNode(focusTarget, true), 350);
+      }
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      window.loadLocalOrCloudData();
+    });
   </script>
 </body>
 </html>
